@@ -19,7 +19,7 @@ services:
 
   app:
     build:
-      context: ./robobg-backend
+      context: ./backend
       dockerfile: Dockerfile
     container_name: app-service
     depends_on:
