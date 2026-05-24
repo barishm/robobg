@@ -1,0 +1,15 @@
+version: 0.2  # Specify the buildspec version
+
+phases:
+  build:
+    commands:
+      - echo "Building the project..."
+      - mvn clean package
+  post_build:
+    commands:
+      - echo "Build completed."
+
+artifacts:
+  files:
+    - target/robobg-app.jar
+  discard-paths: yes

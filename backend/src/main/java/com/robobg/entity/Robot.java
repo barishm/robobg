@@ -1,0 +1,122 @@
+package com.robobg.entity;
+
+
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+
+@Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "robots")
+public class Robot {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "brand",nullable = false)
+    private String brand;
+
+    @Column(name = "model",unique = true,nullable = false)
+    private String model;
+
+    @Column(name = "image")
+    private String image;
+
+    @Column(name = "bests")
+    private Integer bests;
+
+    @Column
+    private String mapping;
+
+    @Column(name = "mapping_sensor_type")
+    private String mappingSensorType;
+
+    @Column(name = "high_precision_map")
+    private String highPrecisionMap;
+
+    @Column(name = "front_camera")
+    private String frontCamera;
+
+    @Column(name = "recharge_resume")
+    private String rechargeResume;
+
+    @Column(name = "auto_dock_and_recharge")
+    private String autoDockAndRecharge;
+
+    @Column(name = "noise_level")
+    private String noiseLevel;
+
+    @Column
+    private String display;
+
+    @Column(name = "side_brushes")
+    private String sideBrushes;
+
+    @Column(name = "voice_prompts")
+    private String voicePrompts;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "cleaning_features_id",referencedColumnName = "id")
+    private CleaningFeatures cleaningFeatures;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "mopping_features_id",referencedColumnName = "id")
+    private MoppingFeatures moppingFeatures;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "batteries_id",referencedColumnName = "id")
+    private Battery battery;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "controls_id",referencedColumnName = "id")
+    private Control control;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "app_features_id",referencedColumnName = "id")
+    private AppFeatures appFeatures;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "sensors_id",referencedColumnName = "id")
+    private Sensor sensor;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "other_specifications_id",referencedColumnName = "id")
+    private OtherSpecifications otherSpecifications;
+
+    @OneToMany(mappedBy = "robot", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PurchaseLink> purchaseLinks = new ArrayList<>();
+
+    @OneToMany(mappedBy = "robot", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Question> questions;
+
+    @ManyToMany(mappedBy = "compatibleRobots")
+    private Set<Consumable> consumables = new HashSet<>();
+
+
+    public void addPurchaseLink(PurchaseLink link) {
+        if (purchaseLinks == null) {
+            purchaseLinks = new ArrayList<>();
+        }
+        purchaseLinks.add(link);
+        link.setRobot(this);
+    }
+
+    public void clearPurchaseLinks() {
+        for (PurchaseLink link : purchaseLinks) {
+            link.setRobot(null);
+        }
+        purchaseLinks.clear();
+    }
+}

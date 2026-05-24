@@ -1,0 +1,38 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.1.0",
+    "formik": "^2.4.5",
+    "i18next": "^25.8.10",
+    "jwt-decode": "^4.0.0",
+    "react": "^18.2.0",
+    "react-chatbot-kit": "^2.2.2",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^16.5.4",
+    "react-photo-view": "^1.2.7",
+    "react-redux": "^9.1.0",
+    "react-router-dom": "^6.22.0",
+    "react-toastify": "^10.0.4",
+    "yup": "^1.7.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.7.0",
+    "baseline-browser-mapping": "^2.10.16",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "vite": "^5.4.21"
+  }
+}

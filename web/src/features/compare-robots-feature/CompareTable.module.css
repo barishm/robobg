@@ -1,0 +1,32 @@
+/* Vertical comparison table styles */
+.comparisonContainer .stickySpecLabel {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  font-size: 0.8rem;
+  font-weight: normal;
+  background-color: rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 2px 5px;
+}
+
+
+.comparisonContainer tbody th {
+  position: sticky;
+  width: 0px !important;
+  text-align: left;
+  left: 0px;
+  margin: 0;
+  padding: 0;
+  display: table-cell;
+  background: none;
+  vertical-align: middle;
+}
+
+
+
+.verticalComparisonTable tbody td {
+  width: 650px;
+}
+
