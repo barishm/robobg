@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16
+    container_name: ${DB_CONTAINER}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"               # host -> container
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: ./robobg-backend
+      dockerfile: Dockerfile
+    container_name: app-service
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      DOMAIN: ${DOMAIN}
+      WEB_PROTOCOL: ${WEB_PROTOCOL}
+      APP_FILES_PATH: ${APP_FILES_PATH}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+      CHANNEL_ID: ${CHANNEL_ID}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      APPLICATION_SECURITY_JWT_SECRET-KEY: ${APPLICATION_SECURITY_JWT_SECRET_KEY}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+    ports:
+      - "${APP_PORT}:${APP_PORT}"        # host -> container
+    restart: unless-stopped
+    volumes:
+      - ${FILES_PATH}:/files
+volumes:
+  pgdata:
