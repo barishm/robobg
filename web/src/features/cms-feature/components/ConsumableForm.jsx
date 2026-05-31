@@ -25,6 +25,7 @@ const ConsumableForm = ({ consumable = null, modalId }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [promoPrice, setPromoPrice] = useState("");
   const [robotIds, setRobotIds] = useState([]);
 
   // Sync state when consumable prop changes (for Edit mode)
@@ -33,6 +34,7 @@ const ConsumableForm = ({ consumable = null, modalId }) => {
       setTitle(consumable.title || "");
       setDescription(consumable.description || "");
       setPrice(consumable.price || "");
+      setPromoPrice(consumable.promoPrice || "");
       setRobotIds(consumable.robots?.map((r) => String(r.id)) || []);
     } else {
       resetForm();
@@ -52,18 +54,32 @@ const ConsumableForm = ({ consumable = null, modalId }) => {
     setTitle("");
     setDescription("");
     setPrice("");
+    setPromoPrice("");
     setRobotIds([]);
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Helper to switch empty string to null, or keep the original value
+    const formatValue = (val) => (val === "" ? null : val);
+
     try {
+      const json = {
+        title: formatValue(title),
+        description: formatValue(description),
+        price: formatValue(price),
+        promoPrice: formatValue(promoPrice),
+        robotIds: formatValue(robotIds),
+      };
+
       if (isEditMode) {
-        const json = { id: consumable.id, title, description, price, robotIds };
-        await updateConsumable({ json, accessToken }).unwrap();
+        // Include the ID for updates
+        await updateConsumable({ 
+          json: { id: consumable.id, ...json }, 
+          accessToken 
+        }).unwrap();
       } else {
-        const json = { title, description, price, robotIds };
         await createConsumable({ json, accessToken }).unwrap();
         resetForm();
       }
@@ -123,12 +139,21 @@ const ConsumableForm = ({ consumable = null, modalId }) => {
                     onChange={(e) => setPrice(e.target.value)}
                   />
                 </div>
+                <div className="mb-3">
+                  <label className="form-label">Promo price</label>
+                  <input
+                    className="form-control form-control-sm"
+                    type="number"
+                    value={promoPrice}
+                    onChange={(e) => setPromoPrice(e.target.value)}
+                  />
+                </div>
 
                 <div className="mb-3">
                   {robotIds.map((currentId, index) => (<>
                     <label className="form-label d-flex justify-content-between"
-                    key={index}>
-                      Robot #{index+1}
+                      key={index}>
+                      Robot #{index + 1}
                     </label>
 
                     <select
