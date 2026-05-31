@@ -89,6 +89,7 @@ public class RobotServiceImpl implements RobotService {
         robot.setAppFeatures(mapAppFeatures(dto.getAppFeatures()));
         robot.setSensor(mapSensor(dto.getSensor()));
         robot.setOtherSpecifications(mapOther(dto.getOtherSpecifications()));
+        robot.setDockSpecifications(mapDock(dto.getDockSpecifications()));
 
         if (dto.getPurchaseLinks() != null) {
             for (PurchaseLinkDTO linkDTO : dto.getPurchaseLinks()) {
@@ -123,6 +124,7 @@ public class RobotServiceImpl implements RobotService {
         updateAppFeatures(dto.getAppFeatures(), robot);
         updateSensor(dto.getSensor(), robot);
         updateOther(dto.getOtherSpecifications(), robot);
+        updateDock(dto.getDockSpecifications(), robot);
 
         // OneToMany
         if (dto.getPurchaseLinks() != null) {
@@ -240,6 +242,17 @@ public class RobotServiceImpl implements RobotService {
         e.setReleaseDate(dto.getReleaseDate());
         return e;
     }
+
+    private DockSpecifications mapDock(DockSpecificationsDTO dto) {
+        if (dto == null) return null;
+
+        DockSpecifications e = new DockSpecifications();
+        e.setWeight(dto.getWeight());
+        e.setWidth(dto.getWidth());
+        e.setHeight(dto.getHeight());
+        return e;
+    }
+
     private void updateCleaning(CleaningFeaturesDTO dto, Robot robot) {
         if (dto == null) {
             robot.setCleaningFeatures(null);
@@ -383,6 +396,24 @@ public class RobotServiceImpl implements RobotService {
         entity.setHeight(dto.getHeight());
         entity.setInTheBox(dto.getInTheBox());
         entity.setReleaseDate(dto.getReleaseDate());
+    }
+
+    private void updateDock(DockSpecificationsDTO dto, Robot robot) {
+        if (dto == null) {
+            robot.setDockSpecifications(null);
+            return;
+        }
+
+        DockSpecifications entity = robot.getDockSpecifications();
+
+        if (entity == null) {
+            entity = new DockSpecifications();
+            robot.setDockSpecifications(entity);
+        }
+
+        entity.setWeight(dto.getWeight());
+        entity.setWidth(dto.getWidth());
+        entity.setHeight(dto.getHeight());
     }
 
     @Override

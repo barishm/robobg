@@ -28,6 +28,7 @@ public class Consumable {
     private String description;
     @Column(precision = 10, scale = 2)
     private BigDecimal price;
+    private BigDecimal promoPrice;
 
     @ManyToMany
     @JoinTable(

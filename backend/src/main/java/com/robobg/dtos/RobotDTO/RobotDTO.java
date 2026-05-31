@@ -30,6 +30,7 @@ public class RobotDTO {
     private AppFeaturesDTO appFeatures;
     private SensorDTO sensor;
     private OtherSpecificationsDTO otherSpecifications;
+    private DockSpecificationsDTO dockSpecifications;
     private List<PurchaseLinkDTO> purchaseLinks;
     private List<ConsumableTitleImagesDTO> consumables;
 

@@ -13,6 +13,7 @@ public class ConsumableListDTO {
     private String title;
     private String description;
     private String price;
+    private String promoPrice;
     private List<String> images = new ArrayList<>();
     private List<RobotModelImageDTO> robots = new ArrayList<>();
 

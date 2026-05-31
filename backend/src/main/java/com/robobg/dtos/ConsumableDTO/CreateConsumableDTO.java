@@ -10,5 +10,6 @@ public class CreateConsumableDTO {
     private String title;
     private String description;
     private String price;
+    private String promoPrice;
     private List<Long> robotIds;
 }

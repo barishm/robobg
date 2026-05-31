@@ -95,6 +95,11 @@ public class Robot {
     @JoinColumn(name = "other_specifications_id",referencedColumnName = "id")
     private OtherSpecifications otherSpecifications;
 
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "dock_specifications_id",referencedColumnName = "id")
+    private DockSpecifications dockSpecifications;
+
     @OneToMany(mappedBy = "robot", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseLink> purchaseLinks = new ArrayList<>();
 

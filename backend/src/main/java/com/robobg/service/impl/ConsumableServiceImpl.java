@@ -85,6 +85,9 @@ public class ConsumableServiceImpl implements ConsumableService {
         if (createConsumableDTO.getPrice() != null) {
             consumable.setPrice(new BigDecimal(createConsumableDTO.getPrice()));
         }
+        if (createConsumableDTO.getPromoPrice() != null) {
+            consumable.setPromoPrice(new BigDecimal(createConsumableDTO.getPromoPrice()));
+        }
         consumable.setCompatibleRobots(compatibleRobots);
 
         consumableRepository.save(consumable);
@@ -99,6 +102,7 @@ public class ConsumableServiceImpl implements ConsumableService {
         if (updateConsumableDTO.getTitle() != null) {
             existingConsumable.setTitle(updateConsumableDTO.getTitle());
         }
+
         if (updateConsumableDTO.getDescription() != null) {
             existingConsumable.setDescription(updateConsumableDTO.getDescription());
         }
@@ -111,9 +115,18 @@ public class ConsumableServiceImpl implements ConsumableService {
             }
         }
 
+        if (updateConsumableDTO.getPromoPrice() == null || updateConsumableDTO.getPromoPrice().trim().isEmpty()) {
+            existingConsumable.setPromoPrice(null);
+        } else {
+            try {
+                existingConsumable.setPromoPrice(new BigDecimal(updateConsumableDTO.getPromoPrice()));
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid promoPrice format: " + updateConsumableDTO.getPromoPrice());
+            }
+        }
+
         if (updateConsumableDTO.getRobotIds() != null) {
             if (updateConsumableDTO.getRobotIds().isEmpty()) {
-                // remove all relationships
                 existingConsumable.getCompatibleRobots().clear();
             } else {
                 Set<Robot> updatedRobots =

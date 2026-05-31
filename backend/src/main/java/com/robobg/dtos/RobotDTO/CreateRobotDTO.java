@@ -27,5 +27,6 @@ public class CreateRobotDTO {
     private AppFeaturesDTO appFeatures;
     private SensorDTO sensor;
     private OtherSpecificationsDTO otherSpecifications;
+    private DockSpecificationsDTO dockSpecifications;
     private List<PurchaseLinkDTO> purchaseLinks;
 }
