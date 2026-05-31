@@ -177,8 +177,7 @@ const Consumable = () => {
                         {data.images && data.images.length > 0 ? (
                           data.images.map((imageSrc, index) => (
                             <div
-                              className={`carousel-item ${index === 0 ? "active" : ""
-                                }`}
+                              className={`carousel-item ${index === 0 ? "active" : ""}`}
                               key={index}
                             >
                               <div
@@ -256,11 +255,55 @@ const Consumable = () => {
 
                   {/* INFO */}
                   <div className="col-12 col-md-8 mt-2 p-4">
-                    <h3 className="fw-border mb-3">{data.title}</h3>
+                    {/* Layout handling for Title and Badge side-by-side */}
+                    <div className="d-flex align-items-center gap-2 mb-3">
+                      <h3 className="fw-border m-0">{data.title}</h3>
+                      {data.promoPrice && data.price && (
+                        (() => {
+                          const original = parseFloat(data.price);
+                          const promo = parseFloat(data.promoPrice);
+                          if (original > 0) {
+                            const pct = Math.round(((original - promo) / original) * 100);
+                            return pct > 0 ? (
+                              <span className="badge bg-danger">-{pct}% OFF</span>
+                            ) : null;
+                          }
+                        })()
+                      )}
+                    </div>
+
                     <h5 className="fw-light mb-3">{data.description}</h5>
-                    <h5 className="fw-border mb-3 text-danger">
-                      {data.price} EUR
-                    </h5>
+
+                    {/* Conditional Pricing Display */}
+                    {data.promoPrice ? (
+                      <div className="d-flex flex-column mb-3">
+                        <span className="text-muted text-decoration-line-through fs-6">
+                          {data.price} EUR
+                        </span>
+                        <h4 className="fw-bold text-primary m-0">
+                          {data.promoPrice} EUR
+                        </h4>
+                      </div>
+                    ) : (
+                      <h5 className="fw-border mb-3 text-danger">
+                        {data.price} EUR
+                      </h5>
+                    )}
+
+                    <button
+                      type="button"
+                      className="btn btn-warning"
+                      style={{ marginTop: "10px", marginBottom: "10px" }}
+                      onClick={() => {
+                        // Professional and formal Bulgarian message
+                        const message = `Здравейте, желая да поръчам следния продукт: [${data.title}]. Моля за информация относно наличност и доставка.`;
+
+                        // Safely encode the string for the URL
+                        navigate(`/contact?message=${encodeURIComponent(message)}`);
+                      }}
+                    >
+                      {lang === "en" ? "Order" : "Поръчай"}
+                    </button>
                   </div>
                 </div>
 

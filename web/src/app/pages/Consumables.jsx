@@ -98,45 +98,80 @@ const Consumables = () => {
               </button>
             )}
           </h3>
-          {isLoading ? (
-            <Loading />
-          ) : paginatedEntities ? (
-            <div className="row mt-4">
-              {paginatedEntities.map((item) => (
-                <div className="col-6 col-sm-6 col-md-4 col-lg-4 col-xl-3 mb-3" key={item.id}>
-                  <div className="card bg-body-tertiary rounded">
-                    <img
-                      className="rounded-top"
-                      value={item.id}
-                      style={{ cursor: "pointer" }}
-                      onClick={() => details(item.id)}
-                      src={item.images[0] || NO_IMAGE}
-                      alt="..."
-                    />
-                    <div className="card-body">
-                      <div className="text-center">
-                        <h5
-                          className="fw-bolder"
-                          onClick={() => details(item.id)}
-                          value={item.id}
-                          style={{ cursor: "pointer" }}
-                        >
-                          {item.title}
-                        </h5>
-                      </div>
-                    </div>
-                    <div className="card-footer mb-2 border-top-0 bg-transparent d-flex justify-content-evenly">
-                      <div className="btn-group text-center">
-                        <h5 className="text-danger">
-                          {item.price} {"EUR"}
-                        </h5>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+{isLoading ? (
+  <Loading />
+) : paginatedEntities ? (
+  <div className="row mt-4">
+    {paginatedEntities.map((item) => {
+      // Calculate discount percentage if promoPrice exists
+      let discountPercentage = 0;
+      if (item.promoPrice && item.price) {
+        const original = parseFloat(item.price);
+        const promo = parseFloat(item.promoPrice);
+        if (original > 0) {
+          discountPercentage = Math.round(((original - promo) / original) * 100);
+        }
+      }
+
+      return (
+        <div className="col-6 col-sm-6 col-md-4 col-lg-4 col-xl-3 mb-3" key={item.id}>
+          {/* Added position-relative to stack the badge correctly */}
+          <div className="card bg-body-tertiary rounded position-relative h-100">
+            
+            {/* Promo Badge in the top right corner */}
+            {item.promoPrice && discountPercentage > 0 && (
+              <span className="badge bg-danger position-absolute top-0 end-0 m-2">
+                -{discountPercentage}%
+              </span>
+            )}
+
+            <img
+              className="rounded-top"
+              value={item.id}
+              style={{ cursor: "pointer" }}
+              onClick={() => details(item.id)}
+              src={item.images[0] || NO_IMAGE}
+              alt="..."
+            />
+            <div className="card-body">
+              <div className="text-center">
+                <h5
+                  className="fw-bolder"
+                  onClick={() => details(item.id)}
+                  value={item.id}
+                  style={{ cursor: "pointer" }}
+                >
+                  {item.title}
+                </h5>
+              </div>
             </div>
-          ) : null}
+            <div className="card-footer mb-2 border-top-0 bg-transparent d-flex justify-content-evenly">
+              <div className="btn-group text-center flex-column align-items-center">
+                {item.promoPrice ? (
+                  <>
+                    {/* Scratched original price */}
+                    <span className="text-muted text-decoration-line-through small">
+                      {item.price} {"EUR"}
+                    </span>
+                    {/* Promo price in blue font */}
+                    <h5 className="text-primary fw-bold m-0">
+                      {item.promoPrice} {"EUR"}
+                    </h5>
+                  </>
+                ) : (
+                  /* Standard price layout if no promo exists */
+                  <h5 className="text-danger m-0">
+                    {item.price} {"EUR"}
+                  </h5>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+) : null}
           {filteredConsumables.length > DEFAULT_ENTITIES_PER_PAGE && (
             <Pagination Page={page} setPage={setPage} isLast={isLast} />
           )}

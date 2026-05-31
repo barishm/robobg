@@ -141,6 +141,11 @@ const RobotForm = ({ action = 'C', id = null }) => {
                     inTheBox: robotData?.otherSpecifications?.inTheBox || "",
                     releaseDate: robotData?.otherSpecifications?.releaseDate || "",
                     warranty: robotData?.otherSpecifications?.warranty || ""
+                },
+                dockSpecifications: {
+                    weight: robotData?.dockSpecifications?.weight || "",
+                    width: robotData?.dockSpecifications?.width || "",
+                    height: robotData?.dockSpecifications?.height || ""
                 }
             };
         }
@@ -219,6 +224,11 @@ const RobotForm = ({ action = 'C', id = null }) => {
                 inTheBox: "",
                 releaseDate: "",
                 warranty: ""
+            },
+            dockSpecifications: {
+                weight: "",
+                width: "",
+                height: ""
             }
         };
     };
@@ -773,6 +783,29 @@ const RobotForm = ({ action = 'C', id = null }) => {
                                     <div className="mb-3">
                                         <label htmlFor="exampleFormControlInput1" className="form-label">Release Date</label>
                                         <input className="form-control form-control-sm" type="date" name="otherSpecifications.releaseDate" onChange={formik.handleChange} value={formik.values.otherSpecifications?.releaseDate || ""} aria-label=".form-control-sm example" />
+                                    </div>
+                                    <h5 className="text-center mt-4">Dock specifications</h5>
+                                    <hr></hr>
+                                    <div className="mb-3">
+                                        <label htmlFor="exampleFormControlInput1" className="form-label">Weight</label>
+                                        <div className="input-group">
+                                            <input className="form-control form-control-sm" type="text" name="dockSpecifications.weight" onChange={formik.handleChange} value={formik.values.dockSpecifications?.weight || ""} aria-label=".form-control-sm example" />
+                                            <span className="input-group-text">kg</span>
+                                        </div>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label htmlFor="exampleFormControlInput1" className="form-label">Width</label>
+                                        <div className="input-group">
+                                            <input className="form-control form-control-sm" type="text" name="dockSpecifications.width" onChange={formik.handleChange} value={formik.values.dockSpecifications?.width || ""} aria-label=".form-control-sm example" />
+                                            <span className="input-group-text">cm</span>
+                                        </div>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label htmlFor="exampleFormControlInput1" className="form-label">Height</label>
+                                        <div className="input-group">
+                                            <input className="form-control form-control-sm" type="text" name="dockSpecifications.height" onChange={formik.handleChange} value={formik.values.dockSpecifications?.height || ""} aria-label=".form-control-sm example" />
+                                            <span className="input-group-text">cm</span>
+                                        </div>
                                     </div>
                                     {purchaseLinks.length > 0 && (
                                         <>

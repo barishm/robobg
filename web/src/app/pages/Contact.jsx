@@ -4,13 +4,15 @@ import { useContactUsFormMutation } from 'src/app/services/contactUsApiSlice';
 import { toast } from "react-toastify";
 import { REMOVE_BORDER_AT } from "src/constants";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from 'react-router-dom';
 
 const Contact = () => {
   const lang = useSelector((state) => state.language.lang);
   const [screenSize, setScreenSize] = useState(window.innerWidth);
   const [isCooldown, setIsCooldown] = useState(false);
 
-
+  const [searchParams] = useSearchParams();
+  const urlMessage = searchParams.get('message');
 
   const [contactUs, { isSuccess, isError, error, isLoading }] = useContactUsFormMutation();
 
@@ -30,6 +32,15 @@ const Contact = () => {
     email: '',
     message: ''
   });
+
+  useEffect(() => {
+    if (urlMessage) {
+      setFormData((prev) => ({
+        ...prev,
+        message: urlMessage // searchParams.get() automatically decodes the URI text for you!
+      }));
+    }
+  }, [urlMessage]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
