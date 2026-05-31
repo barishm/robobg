@@ -294,10 +294,15 @@ const Consumable = () => {
                       type="button"
                       className="btn btn-warning"
                       style={{ marginTop: "10px", marginBottom: "10px" }}
+                      onClick={() => {
+                        // Professional and formal Bulgarian message
+                        const message = `Здравейте, желая да поръчам следния продукт: [${data.title}]. Моля за информация относно наличност и доставка.`;
+
+                        // Safely encode the string for the URL
+                        navigate(`/contact?message=${encodeURIComponent(message)}`);
+                      }}
                     >
-                      {lang === "en"
-                        ? "Order"
-                        : "Поръчай"}
+                      {lang === "en" ? "Order" : "Поръчай"}
                     </button>
                   </div>
                 </div>
