@@ -163,7 +163,7 @@ const handleSubmit = async (e) => {
                       onChange={(e) => handleRobotChange(index, e.target.value)}
                     >
                       <option value="" disabled>Select a Robot</option>
-                      {robots.map((robot) => (
+                      {[...robots].sort((a, b) => a.model.localeCompare(b.model)).map((robot) => (
                         <option key={robot.id} value={String(robot.id)}>
                           {robot.model}
                         </option>
