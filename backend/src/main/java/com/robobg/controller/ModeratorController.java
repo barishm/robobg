@@ -110,8 +110,10 @@ public class ModeratorController {
     @PostMapping("/consumable/{consumableId}/images")
     public void uploadConsumableImages(@PathVariable("consumableId") Long consumableId,
                                        @RequestParam("file") MultipartFile[] files) throws IOException {
+        logger.info("Received image upload request for consumableId: {}, fileCount: {}", consumableId, files.length);
         List<MultipartFile> fileList = Arrays.asList(files);  // Convert array to List
         consumableService.uploadConsumableImage(consumableId, fileList);  // Pass the List to the service
+        logger.info("Successfully stored {} image(s) for consumableId: {}", files.length, consumableId);
     }
 
 

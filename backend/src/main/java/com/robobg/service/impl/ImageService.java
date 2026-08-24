@@ -1,5 +1,7 @@
 package com.robobg.service.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,6 +21,8 @@ import java.util.Set;
 
 @Service
 public class ImageService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ImageService.class);
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg",
@@ -58,23 +62,29 @@ public class ImageService {
 
 
         for (MultipartFile file : files) {
-            validateImage(file);
+            try {
+                validateImage(file);
 
-            BufferedImage original = ImageIO.read(file.getInputStream());
-            if (original == null) {
-                throw new IllegalArgumentException("Invalid image file");
+                BufferedImage original = ImageIO.read(file.getInputStream());
+                if (original == null) {
+                    throw new IllegalArgumentException("Invalid image file: " + file.getOriginalFilename());
+                }
+
+                BufferedImage processed = cropAndResizeToSquare(original, 600);
+
+                String fileName = generateFileName("Consumable", consumableId);
+
+                Path outputPath = storageDir.resolve(fileName);
+                Files.createDirectories(outputPath.getParent());
+
+                writeJpeg(processed, outputPath, 0.75f);
+
+                savedFiles.add(fileName);
+            } catch (Exception e) {
+                logger.error("Failed to process consumable image '{}' ({} bytes, type={}) for consumableId {}: {}",
+                        file.getOriginalFilename(), file.getSize(), file.getContentType(), consumableId, e.getMessage());
+                throw e;
             }
-
-            BufferedImage processed = cropAndResizeToSquare(original, 600);
-
-            String fileName = generateFileName("Consumable",consumableId);
-
-            Path outputPath = storageDir.resolve(fileName);
-            Files.createDirectories(outputPath.getParent());
-
-            writeJpeg(processed, outputPath, 0.75f);
-
-            savedFiles.add(fileName);
         }
 
         return savedFiles;
@@ -87,8 +97,8 @@ public class ImageService {
             throw new IllegalArgumentException("Empty file");
         }
 
-        if (file.getSize() > 5 * 1024 * 1024) { // 5MB limit
-            throw new IllegalArgumentException("File too large (max 5MB)");
+        if (file.getSize() > 10 * 1024 * 1024) { // 10MB limit, matches nginx client_max_body_size / Spring max-file-size
+            throw new IllegalArgumentException("File too large (max 10MB)");
         }
 
         String contentType = file.getContentType();
