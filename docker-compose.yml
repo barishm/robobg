@@ -45,5 +45,6 @@ services:
     restart: unless-stopped
     volumes:
       - ${FILES_PATH}:/files
+      - ${LOGS_PATH}:/logs
 volumes:
   pgdata:

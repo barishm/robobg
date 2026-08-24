@@ -1,7 +1,7 @@
 package com.robobg.exceptions;
 
-public class EntityNotFoundException extends Throwable {
-    public EntityNotFoundException(String s) {
-
+public class EntityNotFoundException extends RuntimeException {
+    public EntityNotFoundException(String message) {
+        super(message);
     }
 }
