@@ -3,6 +3,7 @@ package com.robobg.service.impl;
 import com.robobg.dtos.RobotDTO.*;
 import com.robobg.entity.*;
 import com.robobg.entity.Robot;
+import com.robobg.exceptions.EntityNotFoundException;
 import com.robobg.exceptions.RobotAlreadyExistsException;
 import com.robobg.repository.QuestionRepository;
 import com.robobg.repository.RobotRepository;
@@ -108,7 +109,7 @@ public class RobotServiceImpl implements RobotService {
     public void updateRobot(CreateRobotDTO dto) {
 
         Robot robot = robotRepository.findById(dto.getId())
-                .orElseThrow(() -> new RuntimeException("Robot not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Robot not found with ID: " + dto.getId()));
 
         String image = robot.getImage();
 
@@ -146,7 +147,7 @@ public class RobotServiceImpl implements RobotService {
         robot.setMapping(dto.getMapping());
         robot.setMappingSensorType(dto.getMappingSensorType());
         robot.setHighPrecisionMap(dto.getHighPrecisionMap());
-        robot.setFrontCamera(dto.getFrontCamera());
+        robot.setAi(dto.getAi());
         robot.setRechargeResume(dto.getRechargeResume());
         robot.setAutoDockAndRecharge(dto.getAutoDockAndRecharge());
         robot.setNoiseLevel(dto.getNoiseLevel());

@@ -13,7 +13,7 @@ public class CreateRobotDTO {
     private String mapping;
     private String mappingSensorType;
     private String highPrecisionMap;
-    private String frontCamera;
+    private String ai;
     private String rechargeResume;
     private String autoDockAndRecharge;
     private String noiseLevel;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import {
@@ -27,6 +27,7 @@ const ConsumableForm = ({ consumable = null, modalId }) => {
   const [price, setPrice] = useState("");
   const [promoPrice, setPromoPrice] = useState("");
   const [robotIds, setRobotIds] = useState([]);
+  const closeButtonRef = useRef(null);
 
   // Sync state when consumable prop changes (for Edit mode)
   useEffect(() => {
@@ -45,6 +46,7 @@ const ConsumableForm = ({ consumable = null, modalId }) => {
   useEffect(() => {
     if (isSuccess) {
       toast.success(`Consumable ${isEditMode ? "updated" : "created"} successfully!`);
+      closeButtonRef.current?.click();
     } else if (isError) {
       toast.error(`Error: ${error?.data?.message || "Operation failed"}`);
     }
@@ -178,9 +180,16 @@ const handleSubmit = async (e) => {
             <div className="modal-footer">
               <button type="button" className="btn btn-danger me-1" onClick={removeRobotField}><b>-</b></button>
               <button type="button" className="btn btn-success" onClick={addRobotField}><b>+</b></button>
-              <button type="submit" className="btn btn-primary" data-bs-dismiss="modal">
+              <button type="submit" className="btn btn-primary">
                 {isEditMode ? "Edit" : "Create"}
               </button>
+              <button
+                type="button"
+                ref={closeButtonRef}
+                data-bs-dismiss="modal"
+                style={{ display: "none" }}
+                aria-hidden="true"
+              ></button>
             </div>
           </form>
         </div>

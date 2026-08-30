@@ -3,7 +3,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { cleanFormValues } from "src/utils/utils";
 import { useSelector } from "react-redux";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next"
 
@@ -26,6 +26,7 @@ const RobotForm = ({ action = 'C', id = null }) => {
     const [purchaseLinks, setPurchaseLinks] = useState([]);
     const { data, isLoading: isLoadingRobot, isFetching } = useGetRobotByIdQuery({ id }, { skip: !isUpdate });
     const [robotData, setRobotData] = useState();
+    const closeButtonRef = useRef(null);
 
     const addLinkField = () => {
         setPurchaseLinks(prev => [...prev, { name: "", link: "" }]);
@@ -51,16 +52,18 @@ const RobotForm = ({ action = 'C', id = null }) => {
     useEffect(() => {
         if (isCreateSuccess) {
             toast.success("Robot created successfully!");
+            closeButtonRef.current?.click();
         } else if (isCreateError) {
-            toast.error(`Failed to create robot: ${createError?.data?.error || createError?.error || "Unknown error"}`);
+            toast.error(`Failed to create robot: ${createError?.data?.message || createError?.error || "Unknown error"}`);
         }
     }, [isCreateSuccess, isCreateError, createError]);
 
     useEffect(() => {
         if (isUpdateSuccess) {
             toast.success("Robot updated successfully!");
+            closeButtonRef.current?.click();
         } else if (isUpdateError) {
-            toast.error(`Failed to update robot: ${updateError?.data?.error || updateError?.error || "Unknown error"}`);
+            toast.error(`Failed to update robot: ${updateError?.data?.message || updateError?.error || "Unknown error"}`);
         }
     }, [isUpdateSuccess, isUpdateError, updateError]);
 
@@ -74,7 +77,7 @@ const RobotForm = ({ action = 'C', id = null }) => {
                 mapping: robotData?.mapping ?? "null",
                 mappingSensorType: robotData?.mappingSensorType || "",
                 highPrecisionMap: robotData?.highPrecisionMap ?? "null",
-                frontCamera: robotData?.frontCamera ?? "null",
+                ai: robotData?.ai ?? "null",
                 rechargeResume: robotData?.rechargeResume ?? "null",
                 autoDockAndRecharge: robotData?.autoDockAndRecharge ?? "null",
                 noiseLevel: robotData?.noiseLevel || "",
@@ -157,7 +160,7 @@ const RobotForm = ({ action = 'C', id = null }) => {
             mapping: "null",
             mappingSensorType: "",
             highPrecisionMap: "null",
-            frontCamera: "null",
+            ai: "null",
             rechargeResume: "null",
             autoDockAndRecharge: "null",
             noiseLevel: "",
@@ -356,8 +359,8 @@ const RobotForm = ({ action = 'C', id = null }) => {
                                         </select>
                                     </div>
                                     <div className="mb-3">
-                                        <label htmlFor="frontCamera" className="form-label">Front Camera</label>
-                                        <select className="form-control form-control-sm" name="frontCamera" onChange={formik.handleChange} value={formik.values.frontCamera ?? "null"}>
+                                        <label htmlFor="ai" className="form-label">AI</label>
+                                        <select className="form-control form-control-sm" name="ai" onChange={formik.handleChange} value={formik.values.ai ?? "null"}>
                                             <option value="null">N/A</option>
                                             <option value="Y">YES</option>
                                             <option value="N">NO</option>
@@ -861,9 +864,16 @@ const RobotForm = ({ action = 'C', id = null }) => {
                             </button>
                             <button type="button" className="btn btn-danger me-1" onClick={removeLinkField}><b>-</b></button>
                             <button type="button" className="btn btn-success" onClick={addLinkField}><b>+</b></button>
-                            <button type="submit" className={submitButtonClass} data-bs-dismiss="modal">
+                            <button type="submit" className={submitButtonClass}>
                                 {submitButtonText}
                             </button>
+                            <button
+                                type="button"
+                                ref={closeButtonRef}
+                                data-bs-dismiss="modal"
+                                style={{ display: "none" }}
+                                aria-hidden="true"
+                            ></button>
                         </div>
                     </form>
                 </div>

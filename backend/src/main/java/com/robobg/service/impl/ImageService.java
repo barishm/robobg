@@ -10,7 +10,9 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import java.awt.*;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.*;
@@ -39,10 +41,12 @@ public class ImageService {
 
         validateImage(file);
 
-        BufferedImage original = ImageIO.read(file.getInputStream());
+        byte[] bytes = file.getBytes();
+        BufferedImage original = ImageIO.read(new ByteArrayInputStream(bytes));
         if (original == null) {
             throw new IllegalArgumentException("File is not a valid image");
         }
+        original = applyExifOrientation(original, getExifOrientation(bytes));
 
         BufferedImage processed = cropAndResizeToSquare(original, 600);
 
@@ -65,10 +69,12 @@ public class ImageService {
             try {
                 validateImage(file);
 
-                BufferedImage original = ImageIO.read(file.getInputStream());
+                byte[] bytes = file.getBytes();
+                BufferedImage original = ImageIO.read(new ByteArrayInputStream(bytes));
                 if (original == null) {
                     throw new IllegalArgumentException("Invalid image file: " + file.getOriginalFilename());
                 }
+                original = applyExifOrientation(original, getExifOrientation(bytes));
 
                 BufferedImage processed = cropAndResizeToSquare(original, 600);
 
@@ -105,6 +111,158 @@ public class ImageService {
         if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
             throw new IllegalArgumentException("Unsupported image type: " + contentType);
         }
+    }
+
+    // -------------------- EXIF ORIENTATION --------------------
+
+    // Reads the EXIF "Orientation" tag (if any) directly from the JPEG APP1 segment.
+    // ImageIO.read() ignores this tag, so without it, photos taken in portrait on a
+    // phone (stored as landscape pixels + an orientation flag) get processed unrotated.
+    private int getExifOrientation(byte[] imageBytes) {
+        if (imageBytes.length < 4 || (imageBytes[0] & 0xFF) != 0xFF || (imageBytes[1] & 0xFF) != 0xD8) {
+            return 1;
+        }
+
+        int offset = 2;
+        while (offset + 3 < imageBytes.length) {
+            if ((imageBytes[offset] & 0xFF) != 0xFF) {
+                break;
+            }
+            int marker = imageBytes[offset + 1] & 0xFF;
+            offset += 2;
+
+            if (marker == 0xD8 || marker == 0xD9) {
+                continue;
+            }
+            if (marker == 0xDA) { // Start of Scan - no more metadata segments follow
+                break;
+            }
+
+            int segmentLength = readInt16(imageBytes, offset, false);
+
+            if (marker == 0xE1) { // APP1 - EXIF
+                int exifStart = offset + 2;
+                if (exifStart + 6 <= imageBytes.length
+                        && imageBytes[exifStart] == 'E' && imageBytes[exifStart + 1] == 'x'
+                        && imageBytes[exifStart + 2] == 'i' && imageBytes[exifStart + 3] == 'f') {
+                    return parseExifOrientation(imageBytes, exifStart + 6);
+                }
+            }
+
+            offset += segmentLength;
+        }
+
+        return 1;
+    }
+
+    private int parseExifOrientation(byte[] data, int tiffStart) {
+        if (tiffStart + 8 > data.length) {
+            return 1;
+        }
+
+        boolean littleEndian;
+        if (data[tiffStart] == 'I' && data[tiffStart + 1] == 'I') {
+            littleEndian = true;
+        } else if (data[tiffStart] == 'M' && data[tiffStart + 1] == 'M') {
+            littleEndian = false;
+        } else {
+            return 1;
+        }
+
+        int firstIfdOffset = readInt32(data, tiffStart + 4, littleEndian);
+        int ifdOffset = tiffStart + firstIfdOffset;
+        if (ifdOffset + 2 > data.length) {
+            return 1;
+        }
+
+        int entryCount = readInt16(data, ifdOffset, littleEndian);
+        for (int i = 0; i < entryCount; i++) {
+            int entryOffset = ifdOffset + 2 + (i * 12);
+            if (entryOffset + 12 > data.length) {
+                break;
+            }
+            int tag = readInt16(data, entryOffset, littleEndian);
+            if (tag == 0x0112) { // Orientation
+                return readInt16(data, entryOffset + 8, littleEndian);
+            }
+        }
+
+        return 1;
+    }
+
+    private int readInt16(byte[] data, int offset, boolean littleEndian) {
+        if (littleEndian) {
+            return (data[offset] & 0xFF) | ((data[offset + 1] & 0xFF) << 8);
+        }
+        return ((data[offset] & 0xFF) << 8) | (data[offset + 1] & 0xFF);
+    }
+
+    private int readInt32(byte[] data, int offset, boolean littleEndian) {
+        if (littleEndian) {
+            return (data[offset] & 0xFF) | ((data[offset + 1] & 0xFF) << 8)
+                    | ((data[offset + 2] & 0xFF) << 16) | ((data[offset + 3] & 0xFF) << 24);
+        }
+        return ((data[offset] & 0xFF) << 24) | ((data[offset + 1] & 0xFF) << 16)
+                | ((data[offset + 2] & 0xFF) << 8) | (data[offset + 3] & 0xFF);
+    }
+
+    // Rotates/flips the image according to the EXIF orientation value (1-8) so the
+    // pixel buffer matches how the photo was actually displayed on the source device.
+    private BufferedImage applyExifOrientation(BufferedImage image, int orientation) {
+        if (orientation <= 1 || orientation > 8) {
+            return image;
+        }
+
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        AffineTransform t = new AffineTransform();
+        switch (orientation) {
+            case 2 -> { // flip horizontal
+                t.scale(-1.0, 1.0);
+                t.translate(-width, 0);
+            }
+            case 3 -> { // rotate 180
+                t.translate(width, height);
+                t.rotate(Math.PI);
+            }
+            case 4 -> { // flip vertical
+                t.scale(1.0, -1.0);
+                t.translate(0, -height);
+            }
+            case 5 -> { // transpose
+                t.rotate(-Math.PI / 2);
+                t.scale(-1.0, 1.0);
+            }
+            case 6 -> { // rotate 90 CW
+                t.translate(height, 0);
+                t.rotate(Math.PI / 2);
+            }
+            case 7 -> { // transverse
+                t.scale(-1.0, 1.0);
+                t.translate(-height, 0);
+                t.translate(0, width);
+                t.rotate(3 * Math.PI / 2);
+            }
+            case 8 -> { // rotate 90 CCW
+                t.translate(0, width);
+                t.rotate(3 * Math.PI / 2);
+            }
+            default -> {
+            }
+        }
+
+        boolean swapDims = orientation >= 5;
+        int newWidth = swapDims ? height : width;
+        int newHeight = swapDims ? width : height;
+
+        BufferedImage rotated = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = rotated.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2d.drawImage(image, t, null);
+        g2d.dispose();
+
+        return rotated;
     }
 
     // -------------------- RESIZING --------------------

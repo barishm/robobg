@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -35,6 +36,11 @@ public class GlobalExceptionHandler {
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
         return build(HttpStatus.BAD_REQUEST, message.isBlank() ? "Invalid request" : message, null);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleMalformedRequestBody(HttpMessageNotReadableException ex, WebRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "The request could not be understood. Please check the field values and try again.", null);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

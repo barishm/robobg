@@ -3,6 +3,7 @@ export const specsConfig = [
   { textKey: 'mapping', field: 'mapping' },
   { textKey: 'mappingSensorType', field: 'mappingSensorType' },
   { textKey: 'highPrecisionMap', field: 'highPrecisionMap' },
+  { textKey: 'ai', field: 'ai' },
   { textKey: 'noiseLevel', field: 'noiseLevel', unit: 'dB' },
   { textKey: 'sideBrushes', field: 'sideBrushes' },
   { textKey: 'voicePrompts', field: 'voicePrompts' },

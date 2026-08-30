@@ -50,6 +50,21 @@ public class ConsumableServiceImpl implements ConsumableService {
         this.imageService = imageService;
     }
 
+    // Preserves the order robots were added in (findAllById does not guarantee input order)
+    private List<Robot> findRobotsInOrder(List<Long> robotIds) {
+        if (robotIds == null || robotIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Map<Long, Robot> robotsById = robotRepository.findAllById(robotIds).stream()
+                .collect(Collectors.toMap(Robot::getId, robot -> robot));
+
+        return robotIds.stream()
+                .map(robotsById::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
     private String buildFullImageUrl(String image) {
         if (image == null || image.startsWith("http")) {
             return image;
@@ -77,16 +92,24 @@ public class ConsumableServiceImpl implements ConsumableService {
     @Override
     @Transactional
     public void createConsumableService(CreateConsumableDTO createConsumableDTO) {
-        Set<Robot> compatibleRobots = new HashSet<>(robotRepository.findAllById(createConsumableDTO.getRobotIds()));
+        List<Robot> compatibleRobots = findRobotsInOrder(createConsumableDTO.getRobotIds());
 
         Consumable consumable = new Consumable();
         consumable.setTitle(createConsumableDTO.getTitle());
         consumable.setDescription(createConsumableDTO.getDescription());
         if (createConsumableDTO.getPrice() != null) {
-            consumable.setPrice(new BigDecimal(createConsumableDTO.getPrice()));
+            try {
+                consumable.setPrice(new BigDecimal(createConsumableDTO.getPrice()));
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid price format: " + createConsumableDTO.getPrice());
+            }
         }
         if (createConsumableDTO.getPromoPrice() != null) {
-            consumable.setPromoPrice(new BigDecimal(createConsumableDTO.getPromoPrice()));
+            try {
+                consumable.setPromoPrice(new BigDecimal(createConsumableDTO.getPromoPrice()));
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid promoPrice format: " + createConsumableDTO.getPromoPrice());
+            }
         }
         consumable.setCompatibleRobots(compatibleRobots);
 
@@ -97,7 +120,7 @@ public class ConsumableServiceImpl implements ConsumableService {
     @Transactional
     public void updateConsumable(CreateConsumableDTO updateConsumableDTO) {
         Consumable existingConsumable = consumableRepository.findById(updateConsumableDTO.getId())
-                .orElseThrow(() -> new RuntimeException("Consumable not found with ID: " + updateConsumableDTO.getId()));
+                .orElseThrow(() -> new EntityNotFoundException("Consumable not found with ID: " + updateConsumableDTO.getId()));
 
         if (updateConsumableDTO.getTitle() != null) {
             existingConsumable.setTitle(updateConsumableDTO.getTitle());
@@ -129,8 +152,7 @@ public class ConsumableServiceImpl implements ConsumableService {
             if (updateConsumableDTO.getRobotIds().isEmpty()) {
                 existingConsumable.getCompatibleRobots().clear();
             } else {
-                Set<Robot> updatedRobots =
-                        new HashSet<>(robotRepository.findAllById(updateConsumableDTO.getRobotIds()));
+                List<Robot> updatedRobots = findRobotsInOrder(updateConsumableDTO.getRobotIds());
                 existingConsumable.setCompatibleRobots(updatedRobots);
             }
         }

@@ -46,8 +46,8 @@ public class Robot {
     @Column(name = "high_precision_map")
     private String highPrecisionMap;
 
-    @Column(name = "front_camera")
-    private String frontCamera;
+    @Column(name = "ai")
+    private String ai;
 
     @Column(name = "recharge_resume")
     private String rechargeResume;

@@ -51,7 +51,7 @@ const RobotDetails = (props) => {
               {renderBooleanStringTableRow("Mapping / Path planning", robot.mapping)}
               {renderStringTableRow("Mapping Sensor Type", robot.mappingSensorType, "")}
               {renderBooleanStringTableRow("High-Precision Map", robot.highPrecisionMap)}
-              {/* {renderBooleanStringTableRow("Objects recognition (front camera)",robot.frontCamera)} */}
+              {renderBooleanStringTableRow("AI", robot.ai)}
               {renderBooleanStringTableRow("Magnetic/Optical Virtual Walls", robot.control.magneticVirtualWalls)}
               {renderStringTableRow("Barrier-cross Height", robot.cleaningFeatures.barrierCrossHeight, "mm")}
               {renderStringTableRow("Сleaning Area", robot.cleaningFeatures.cleaningArea, "m&sup2;")}

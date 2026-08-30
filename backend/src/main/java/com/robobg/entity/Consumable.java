@@ -9,9 +9,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Getter
@@ -36,7 +34,8 @@ public class Consumable {
             joinColumns = @JoinColumn(name = "consumable_id"),
             inverseJoinColumns = @JoinColumn(name = "robot_id")
     )
-    private Set<Robot> compatibleRobots = new HashSet<>();
+    @OrderColumn(name = "robot_order")
+    private List<Robot> compatibleRobots = new ArrayList<>();
 
 
     @ElementCollection

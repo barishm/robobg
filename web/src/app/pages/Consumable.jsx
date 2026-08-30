@@ -326,7 +326,7 @@ const Consumable = () => {
                 </div>
 
                 <ul className="list-unstyled mt-3">
-                  {[...data.robots].sort((a, b) => a.model.localeCompare(b.model)).map((robot, index) => (
+                  {data.robots.map((robot, index) => (
                     <li
                       key={robot.id}
                       onClick={() => navigate(`/robots/${robot.id}`)}
