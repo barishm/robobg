@@ -68,7 +68,7 @@ export const specsConfig = [
 
     // Dock Specifications
   { section: 'Dock Specifications' },
-  { textKey: 'weight', field: 'otherSpecifications.weight', unit: 'kg' },
-  { textKey: 'width', field: 'otherSpecifications.width', unit: 'cm' },
-  { textKey: 'height', field: 'otherSpecifications.height', unit: 'cm' }
+  { textKey: 'weight', field: 'dockSpecifications.weight', unit: 'kg' },
+  { textKey: 'width', field: 'dockSpecifications.width', unit: 'cm' },
+  { textKey: 'height', field: 'dockSpecifications.height', unit: 'cm' }
 ];

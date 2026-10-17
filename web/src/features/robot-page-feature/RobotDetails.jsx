@@ -43,7 +43,7 @@ const RobotDetails = (props) => {
             <thead>
               <tr>
                 <th colSpan="2" style={{ backgroundColor: "rgb(240, 240, 240)" }}>
-                  🧭 Navigation
+                  🧭 {t("Navigation")}
                 </th>
               </tr>
             </thead>
