@@ -1,9 +1,10 @@
-import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import Loading from 'src/components/Loading';
 import ReleaseDateDisplay from 'src/components/ReleaseDateDisplay';
-import SpecsRenderer from 'src/components/SpecsRenderer';
 import styles from './CompareTable.module.css';
 import { specsConfig } from './specsConfig';
+
+const specKey = (field) => field.split('.').pop();
 
 // Internal helper components
 const SectionHeader = ({ title, colSpan }) => {
@@ -19,24 +20,32 @@ const SectionHeader = ({ title, colSpan }) => {
   );
 };
 
-const SpecificationRow = ({ textKey, field, unit, renderRow, renderStringRow }) => {
+const SpecLabel = ({ field }) => {
+  const { t } = useTranslation();
+  const key = specKey(field);
+  return (
+    <th scope="row">
+      <span className={styles.stickySpecLabel}>
+        {t(key)}{' '}
+        <a
+          tabIndex="0"
+          data-bs-container="body"
+          data-bs-toggle="popover"
+          data-bs-trigger="hover focus"
+          data-bs-placement="right"
+          data-bs-content={t(`${key}Desc`)}
+          style={{ color: '#000000', cursor: 'pointer' }}
+        >
+        </a>
+      </span>
+    </th>
+  );
+};
+
+const SpecificationRow = ({ field, unit, renderRow, renderStringRow }) => {
   return (
     <tr>
-      <th scope="row">
-        <span className={styles.stickySpecLabel}>
-          {SpecsRenderer({ textKey })}{' '}
-          <a
-            tabIndex="0"
-            data-bs-container="body"
-            data-bs-toggle="popover"
-            data-bs-trigger="hover focus"
-            data-bs-placement="right"
-            data-bs-content={SpecsRenderer({ textKey: `${textKey}Desc` })}
-            style={{ color: '#000000', cursor: 'pointer' }}
-          >
-          </a>
-        </span>
-      </th>
+      <SpecLabel field={field} />
       {unit ? renderStringRow(field, unit) : renderRow(field)}
     </tr>
   );
@@ -45,7 +54,7 @@ const SpecificationRow = ({ textKey, field, unit, renderRow, renderStringRow }) 
 // Main component
 const CompareTable = ({ robots, onDeleteRobot }) => {
   const noImage = 'images/no-image.jpg';
-  const lang = useSelector((state) => state.language.lang);
+  const { t } = useTranslation();
 
   const deleteHandler = (e) => {
     const id = parseInt(e.target.dataset.id, 10);
@@ -72,10 +81,10 @@ const CompareTable = ({ robots, onDeleteRobot }) => {
             <span style={{ color: 'grey' }}>N/A</span>
           ) : value === "Y" ? (
             <span style={{ color: 'green' }}>
-              {lang === 'en' ? 'YES' : 'ДА'}
+              {t('yes')}
             </span>
           ) : value === "N" ? (
-            <span style={{ color: 'red' }}>{lang === 'en' ? 'NO' : 'НЕ'}</span>
+            <span style={{ color: 'red' }}>{t('no')}</span>
           ) : (
             value
           )}
@@ -197,7 +206,7 @@ const CompareTable = ({ robots, onDeleteRobot }) => {
                   return (
                     <SectionHeader
                       key={`section-${index}`}
-                      title={spec.section}
+                      title={[spec.icon, t(spec.section)].filter(Boolean).join(' ')}
                       colSpan={robots.length}
                     />
                   );
@@ -206,23 +215,7 @@ const CompareTable = ({ robots, onDeleteRobot }) => {
                 if (spec.custom === 'releaseDate') {
                   return (
                     <tr key={`spec-${index}`}>
-                      <th scope="row">
-                        <span className={styles.stickySpecLabel}>
-                          {SpecsRenderer({ textKey: spec.textKey })}{' '}
-                          <a
-                            tabIndex="0"
-                            data-bs-container="body"
-                            data-bs-toggle="popover"
-                            data-bs-trigger="hover focus"
-                            data-bs-placement="right"
-                            data-bs-content={SpecsRenderer({
-                              textKey: `${spec.textKey}Desc`,
-                            })}
-                            style={{ color: '#000000', cursor: 'pointer' }}
-                          >
-                          </a>
-                        </span>
-                      </th>
+                      <SpecLabel field={spec.field} />
                       {robots.map((item) => (
                         <td
                           key={item.id}
@@ -246,7 +239,6 @@ const CompareTable = ({ robots, onDeleteRobot }) => {
                 return (
                   <SpecificationRow
                     key={`spec-${index}`}
-                    textKey={spec.textKey}
                     field={spec.field}
                     unit={spec.unit}
                     renderRow={renderRow}

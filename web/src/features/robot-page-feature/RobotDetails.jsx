@@ -14,7 +14,7 @@ const RobotDetails = (props) => {
           color: value === "Y" ? 'green' : value === "N" ? 'red' : 'gray',
         }}
       >
-        {value === "Y" ? 'YES' : value === "N" ? 'NO' : 'N/A'}
+        {value === "Y" ? t("yes") : value === "N" ? t("no") : 'N/A'}
       </td>
     </tr>
   );
@@ -43,38 +43,38 @@ const RobotDetails = (props) => {
             <thead>
               <tr>
                 <th colSpan="2" style={{ backgroundColor: "rgb(240, 240, 240)" }}>
-                  🧭 {t("Navigation")}
+                  🧭 {t("navigation")}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {renderBooleanStringTableRow("MappingPathplanning", robot.mapping)}
-              {renderStringTableRow("MappingSensorType", robot.mappingSensorType, "")}
-              {renderBooleanStringTableRow("HighPrecisionMap", robot.highPrecisionMap)}
-              {renderBooleanStringTableRow("AI", robot.ai)}
-              {renderBooleanStringTableRow("MagneticOpticalVirtualWalls", robot.control.magneticVirtualWalls)}
-              {renderStringTableRow("BarrierCrossHeight", robot.cleaningFeatures.barrierCrossHeight, "mm")}
-              {renderStringTableRow("CleaningArea", robot.cleaningFeatures.cleaningArea, "m&sup2;")}
-              {renderBooleanStringTableRow("AntiDropCliffSensor", robot.sensor.cliffSensor)}
+              {renderBooleanStringTableRow("mapping", robot.mapping)}
+              {renderStringTableRow("mappingSensorType", robot.mappingSensorType, "")}
+              {renderBooleanStringTableRow("highPrecisionMap", robot.highPrecisionMap)}
+              {renderBooleanStringTableRow("ai", robot.ai)}
+              {renderBooleanStringTableRow("magneticVirtualWalls", robot.control.magneticVirtualWalls)}
+              {renderStringTableRow("barrierCrossHeight", robot.cleaningFeatures.barrierCrossHeight, "mm")}
+              {renderStringTableRow("cleaningArea", robot.cleaningFeatures.cleaningArea, "m&sup2;")}
+              {renderBooleanStringTableRow("cliffSensor", robot.sensor.cliffSensor)}
             </tbody>
           </table>
           <table className="table table-bordered" style={{ tableLayout: "fixed", width: "100%" }}>
             <thead>
               <tr>
                 <th colSpan="2" style={{ backgroundColor: "rgb(240, 240, 240)" }}>
-                  🧹 {t("CleaningFeatures")}
+                  🧹 {t("cleaningFeatures")}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {renderStringTableRow("SuctionPower", robot.cleaningFeatures.suctionPower, "Pa")}
-              {renderStringTableRow("DustbinCapacity", robot.cleaningFeatures.dustbinCapacity, "ml")}
-              {renderBooleanStringTableRow("AutomaticDirtDisposal", robot.cleaningFeatures.autoDirtDisposal)}
-              {renderStringTableRow("AutomaticDirtDisposal", robot.cleaningFeatures.disposableDustBagCapacity, "L")}
-              {renderBooleanStringTableRow("HEPAfilter", robot.cleaningFeatures.hepaFilter)}
-              {renderBooleanStringTableRow("WashableFilter", robot.cleaningFeatures.washableFilter)}
-              {renderStringTableRow("SideBrushes", robot.sideBrushes, "")}
-              {renderBooleanStringTableRow("CarpetBoost", robot.sensor.carpetBoost)}
+              {renderStringTableRow("suctionPower", robot.cleaningFeatures.suctionPower, "Pa")}
+              {renderStringTableRow("dustbinCapacity", robot.cleaningFeatures.dustbinCapacity, "ml")}
+              {renderBooleanStringTableRow("autoDirtDisposal", robot.cleaningFeatures.autoDirtDisposal)}
+              {renderStringTableRow("disposableDustBagCapacity", robot.cleaningFeatures.disposableDustBagCapacity, "L")}
+              {renderBooleanStringTableRow("hepaFilter", robot.cleaningFeatures.hepaFilter)}
+              {renderBooleanStringTableRow("washableFilter", robot.cleaningFeatures.washableFilter)}
+              {renderStringTableRow("sideBrushes", robot.sideBrushes, "")}
+              {renderBooleanStringTableRow("carpetBoost", robot.sensor.carpetBoost)}
               {/* {renderBooleanStringTableRow("Dirt Sensor", robot.sensor.dirtSensor)} */}
               {/* {renderBooleanStringTableRow("Full Dustbin Sensor",robot.sensor.fullDustbinSensor)} */}
             </tbody>
@@ -83,34 +83,34 @@ const RobotDetails = (props) => {
             <thead>
               <tr>
                 <th colSpan="2" style={{ backgroundColor: "rgb(240, 240, 240)" }}>
-                  🧽 {t("MoppingFeatures")}
+                  🧽 {t("moppingFeatures")}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {renderBooleanStringTableRow("WetMopping", robot.moppingFeatures.wetMopping)}
-              {renderBooleanStringTableRow("ElectricWaterFlowControl", robot.moppingFeatures.electricWaterFlowControl)}
-              {renderStringTableRow("WaterTankCapacity", robot.moppingFeatures.waterTankCapacity, "ml")}
-              {renderBooleanStringTableRow("VibratingMoppingPad", robot.moppingFeatures.vibratingMoppingPad)}
-              {renderBooleanStringTableRow("AutomaticMopLifting", robot.moppingFeatures.autoMopLifting)}
-              {renderBooleanStringTableRow("AutoWaterTankRefilling", robot.moppingFeatures.autoWaterTankRefilling)}
-              {renderBooleanStringTableRow("AutoMopWashing", robot.moppingFeatures.autoMopWashing)}
-              {renderBooleanStringTableRow("SpinningMops", robot.moppingFeatures.spinningMops)}
-              {renderBooleanStringTableRow("WashingMopsWithWarmWater", robot.moppingFeatures.washingMopsWithWarmWater)}
-              {renderBooleanStringTableRow("DryingTheMops", robot.moppingFeatures.dryingTheMops)}
-              {renderBooleanStringTableRow("AutomaticDetergentDosing", robot.moppingFeatures.automaticDetergentDosing)}
+              {renderBooleanStringTableRow("wetMopping", robot.moppingFeatures.wetMopping)}
+              {renderBooleanStringTableRow("electricWaterFlowControl", robot.moppingFeatures.electricWaterFlowControl)}
+              {renderStringTableRow("waterTankCapacity", robot.moppingFeatures.waterTankCapacity, "ml")}
+              {renderBooleanStringTableRow("vibratingMoppingPad", robot.moppingFeatures.vibratingMoppingPad)}
+              {renderBooleanStringTableRow("autoMopLifting", robot.moppingFeatures.autoMopLifting)}
+              {renderBooleanStringTableRow("autoWaterTankRefilling", robot.moppingFeatures.autoWaterTankRefilling)}
+              {renderBooleanStringTableRow("autoMopWashing", robot.moppingFeatures.autoMopWashing)}
+              {renderBooleanStringTableRow("spinningMops", robot.moppingFeatures.spinningMops)}
+              {renderBooleanStringTableRow("washingMopsWithWarmWater", robot.moppingFeatures.washingMopsWithWarmWater)}
+              {renderBooleanStringTableRow("dryingTheMops", robot.moppingFeatures.dryingTheMops)}
+              {renderBooleanStringTableRow("automaticDetergentDosing", robot.moppingFeatures.automaticDetergentDosing)}
             </tbody>
           </table>
           <table className="table table-bordered" style={{ tableLayout: "fixed", width: "100%" }}>
             <thead>
               <tr>
                 <th colSpan="2" style={{ backgroundColor: "rgb(240, 240, 240)" }}>
-                  🔋 {t("Battery")}
+                  🔋 {t("battery")}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {renderStringTableRow("BatteryCapacity", robot.battery.batteryCapacity, "mAh")}
+              {renderStringTableRow("batteryCapacity", robot.battery.batteryCapacity, "mAh")}
               {/* {renderStringTableRow("Battery life",robot.battery.batteryLife,"min")} */}
               {/* {renderBooleanStringTableRow("Recharge & Resume", robot.rechargeResume)} */}
               {/* {renderStringTableRow("Charging Time", robot.battery.chargingTime, "min")} */}
@@ -125,55 +125,55 @@ const RobotDetails = (props) => {
                   colSpan="2"
                   style={{ backgroundColor: "rgb(240, 240, 240)" }}
                 >
-                  ⚙ {t("UsabilityControl")}
+                  ⚙ {t("control")}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {renderBooleanStringTableRow("WiFiSmartphoneApp", robot.control.wifiSmartphoneApp)}
-              {/* {renderBooleanStringTableRow("Scheduling", robot.control.scheduling)} */}
+              {renderBooleanStringTableRow("wifiSmartphoneApp", robot.control.wifiSmartphoneApp)}
+              {/* {renderBooleanStringTableRow("scheduling", robot.control.scheduling)} */}
               {/* {renderBooleanStringTableRow("IR/RF Remote Control",robot.control.irRfRemoteControl)} */}
-              {renderStringTableRow("WiFiFrequencyBand", robot.control.wifiFrequencyBand, "GHz")}
-              {renderBooleanStringTableRow("AmazonAlexaSupport", robot.control.amazonAlexaSupport)}
-              {renderBooleanStringTableRow("GoogleAssistantSupport", robot.control.googleAssistantSupport)}
-              {/* {renderBooleanStringTableRow("Display", robot.display)} */}
-              {renderBooleanStringTableRow("VoicePrompts", robot.voicePrompts)}
-              {renderStringTableRow("NoiseLevel", robot.noiseLevel, "")}
+              {renderStringTableRow("wifiFrequencyBand", robot.control.wifiFrequencyBand, "GHz")}
+              {renderBooleanStringTableRow("amazonAlexaSupport", robot.control.amazonAlexaSupport)}
+              {renderBooleanStringTableRow("googleAssistantSupport", robot.control.googleAssistantSupport)}
+              {/* {renderBooleanStringTableRow("display", robot.display)} */}
+              {renderBooleanStringTableRow("voicePrompts", robot.voicePrompts)}
+              {renderStringTableRow("noiseLevel", robot.noiseLevel, "")}
             </tbody>
           </table>
           <table className="table table-bordered" style={{ tableLayout: "fixed", width: "100%" }}>
             <thead>
               <tr>
                 <th colSpan="2" style={{ backgroundColor: "rgb(240, 240, 240)" }}>
-                  📱 {t("AppFeatures")}
+                  📱 {t("appFeatures")}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {renderBooleanStringTableRow("RealTimeTracking", robot.appFeatures.realTimeTracking)}
-              {renderBooleanStringTableRow("DigitalBlockedAreas", robot.appFeatures.digitalBlockedAreas)}
-              {renderBooleanStringTableRow("ZonedCleaning", robot.appFeatures.zonedCleaning)}
-              {renderBooleanStringTableRow("MultiFloorMaps", robot.appFeatures.multiFloorMaps)}
+              {renderBooleanStringTableRow("realTimeTracking", robot.appFeatures.realTimeTracking)}
+              {renderBooleanStringTableRow("digitalBlockedAreas", robot.appFeatures.digitalBlockedAreas)}
+              {renderBooleanStringTableRow("zonedCleaning", robot.appFeatures.zonedCleaning)}
+              {renderBooleanStringTableRow("multiFloorMaps", robot.appFeatures.multiFloorMaps)}
               {/* {renderBooleanStringTableRow("Manual movement control",robot.appFeatures.manualMovementControl)} */}
-              {renderBooleanStringTableRow("SelectedRoomCleaning", robot.appFeatures.selectedRoomCleaning)}
-              {renderBooleanStringTableRow("NoMopZones", robot.appFeatures.noMopZones)}
+              {renderBooleanStringTableRow("selectedRoomCleaning", robot.appFeatures.selectedRoomCleaning)}
+              {renderBooleanStringTableRow("noMopZones", robot.appFeatures.noMopZones)}
             </tbody>
           </table>
           <table className="table table-bordered" style={{ tableLayout: "fixed", width: "100%" }}>
             <thead>
               <tr>
                 <th colSpan="2" style={{ backgroundColor: "rgb(240, 240, 240)" }}>
-                  {t("OtherSpecifications")}
+                  {t("otherSpecifications")}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {renderStringTableRow("Weight", robot.otherSpecifications.weight, "kg")}
-              {renderStringTableRow("Width", robot.otherSpecifications.width, "cm")}
-              {renderStringTableRow("Height", robot.otherSpecifications.height, "cm")}
+              {renderStringTableRow("weight", robot.otherSpecifications.weight, "kg")}
+              {renderStringTableRow("width", robot.otherSpecifications.width, "cm")}
+              {renderStringTableRow("height", robot.otherSpecifications.height, "cm")}
               {/* {renderStringTableRow("In the box",robot.otherSpecifications.inTheBox,"")} */}
               <tr>
-                <th>{t("ReleaseDate")}</th>
+                <th>{t("releaseDate")}</th>
                 <td>
                   <ReleaseDateDisplay
                     releaseDate={robot.otherSpecifications.releaseDate} />
@@ -186,14 +186,14 @@ const RobotDetails = (props) => {
               <thead>
                 <tr>
                   <th colSpan="2" style={{ backgroundColor: "rgb(240, 240, 240)" }}>
-                    {t("DockSpecifications")}
+                    {t("dockSpecifications")}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {renderStringTableRow("Weight", robot.dockSpecifications?.weight, "kg")}
-                {renderStringTableRow("Width", robot.dockSpecifications?.width, "cm")}
-                {renderStringTableRow("Height", robot.dockSpecifications?.height, "cm")}
+                {renderStringTableRow("weight", robot.dockSpecifications?.weight, "kg")}
+                {renderStringTableRow("width", robot.dockSpecifications?.width, "cm")}
+                {renderStringTableRow("height", robot.dockSpecifications?.height, "cm")}
               </tbody>
             </table>
           )}
