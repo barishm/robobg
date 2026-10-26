@@ -1,7 +1,8 @@
-import Bests from 'src/features/home-page-feature/Bests';
+// import Bests from 'src/features/home-page-feature/Bests';
 import PopularComparisons from 'src/components/PopularComparisons';
-import YoutubeVideos from 'src/features/home-page-feature/YoutubeVideos';
+// import YoutubeVideos from 'src/features/home-page-feature/YoutubeVideos';
 import HomePageCompareForm from 'src/features/home-page-feature/HomePageCompareForm';
+import Offers from 'src/features/home-page-feature/Offers';
 import Ozone from 'src/features/ads-feature/components/Ozone';
 
 const Home = () => {
@@ -11,8 +12,9 @@ const Home = () => {
       <section className="mt-4">
         <div className="container d-flex">
           <div className="col-12 col-md-12 col-lg-9">
-            <Bests />
-            <YoutubeVideos />
+            {/* <Bests />
+            <YoutubeVideos /> */}
+            <Offers />
           </div>
           <div
             className="col-12 col-md-12 col-lg-3"
