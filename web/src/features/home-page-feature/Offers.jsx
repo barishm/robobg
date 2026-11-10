@@ -1,10 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useGetAllRobotsQuery } from 'src/app/services/robotApiSlice';
+import { useGetAllConsumablesQuery } from 'src/app/services/consumableApiSlice';
+import { renderOfferText } from './offerTextMarkup';
 
 const RELATIVE_TIME_REFRESH_MS = 30000;
-const NO_IMAGE = 'images/no-image.jpg';
+const OFFERS_STORAGE_KEY = 'robobg_offers';
+
+// Offers have no backend yet, so they're kept in the browser's sessionStorage
+// (not cookies: an offer can carry a base64 image, which would blow past
+// cookies' ~4KB limit and get sent to the server on every request for no
+// reason) so they survive a page reload instead of only living in memory.
+// Not localStorage: logging out (including the automatic logout any
+// signed-out visit triggers) calls localStorage.clear(), which would wipe
+// the offers along with the auth token.
+const loadStoredOffers = () => {
+  try {
+    const raw = sessionStorage.getItem(OFFERS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 const bgUnit = (count, singular, plural) => `преди ${count} ${count === 1 ? singular : plural}`;
 const enUnit = (count, unit) => `${count} ${unit}${count === 1 ? '' : 's'} ago`;
@@ -38,31 +57,36 @@ const formatRelativeTime = (iso, lang) => {
   });
 };
 
-const OfferMedia = ({ image, title, promoCode }) => {
+const OfferCard = ({ offer, lang, robots, consumables, isAdmin, onRequestDelete }) => {
   const { t } = useTranslation();
 
   return (
-    <div className="d-flex bg-body-tertiary">
-      {image && (
-        <img
-          src={image}
-          alt=""
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
-          style={{ width: '120px', height: '90px', objectFit: 'cover', flexShrink: 0 }}
-        />
+    <div className="card mb-3 position-relative overflow-hidden">
+      {isAdmin && onRequestDelete && (
+        <button
+          type="button"
+          className="btn btn-sm btn-danger position-absolute top-0 end-0 m-2"
+          style={{ zIndex: 1 }}
+          data-bs-toggle="modal"
+          data-bs-target="#deleteOfferModal"
+          onClick={() => onRequestDelete(offer.id)}
+        >
+          {t('Delete')}
+        </button>
       )}
-      {(title || promoCode) && (
-        <div className="p-2 d-flex flex-column justify-content-center">
-          {title && <div className="fw-bold">{title}</div>}
-          {promoCode && (
-            <div className="small">
-              <span className="text-muted me-1">{t('promoCode')}:</span>
-              <span className="fw-bold font-monospace">{promoCode}</span>
-            </div>
-          )}
+      <div className="card-body">
+        <div className="text-muted small mb-2">{formatRelativeTime(offer.createdAt, lang)}</div>
+        <div className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
+          {renderOfferText(offer.text, robots, consumables)}
         </div>
+      </div>
+      {offer.image && (
+        <img
+          src={offer.image}
+          alt=""
+          className="w-100"
+          style={{ display: 'block', maxHeight: '320px', objectFit: 'cover' }}
+        />
       )}
     </div>
   );
@@ -74,48 +98,62 @@ const Offers = () => {
   const { role } = useSelector((state) => state.auth);
   const isAdmin = role === 'ADMIN' || role === 'MODERATOR';
   const { data: robots } = useGetAllRobotsQuery();
+  const { data: consumables } = useGetAllConsumablesQuery();
 
-  const [offers, setOffers] = useState([]);
+  const fileInputRef = useRef(null);
+  const [offers, setOffers] = useState(loadStoredOffers);
   const [text, setText] = useState('');
-  const [link, setLink] = useState('');
-  const [promoCode, setPromoCode] = useState('');
-  const [titleSource, setTitleSource] = useState('manual');
-  const [selectedRobotId, setSelectedRobotId] = useState('');
-  const [manualTitle, setManualTitle] = useState('');
-  const [manualImage, setManualImage] = useState('');
+  const [image, setImage] = useState('');
   const [fileInputKey, setFileInputKey] = useState(0);
   const [offerIdToDelete, setOfferIdToDelete] = useState(null);
   const [, setRelativeTimeTick] = useState(0);
 
-  // Offers only live in memory for this page load, so re-render periodically
-  // to keep "X minutes ago" timestamps fresh without needing a refresh.
+  // Re-render periodically to keep "X minutes ago" timestamps fresh without
+  // needing a refresh.
   useEffect(() => {
     const intervalId = setInterval(() => setRelativeTimeTick((tick) => tick + 1), RELATIVE_TIME_REFRESH_MS);
     return () => clearInterval(intervalId);
   }, []);
 
-  const sortedRobots = robots ? [...robots].sort((a, b) => a.model.localeCompare(b.model)) : [];
-  const selectedRobot = sortedRobots.find((robot) => String(robot.id) === String(selectedRobotId));
+  // A photo straight from a phone camera can easily be several MB once
+  // base64-encoded, which blows past sessionStorage's quota (~5MB) on its
+  // own. If the full list doesn't fit, drop images (oldest offers first,
+  // keeping their text) until what's left does, so a big image never costs
+  // us the whole offers list after a reload.
+  useEffect(() => {
+    const tryPersist = (list) => {
+      try {
+        sessionStorage.setItem(OFFERS_STORAGE_KEY, JSON.stringify(list));
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (tryPersist(offers)) return;
+
+    const trimmed = offers.map((offer) => ({ ...offer }));
+    for (let i = trimmed.length - 1; i >= 0; i--) {
+      if (!trimmed[i].image) continue;
+      trimmed[i] = { ...trimmed[i], image: null };
+      if (tryPersist(trimmed)) return;
+    }
+  }, [offers]);
 
   const resetForm = () => {
     setText('');
-    setLink('');
-    setPromoCode('');
-    setTitleSource('manual');
-    setSelectedRobotId('');
-    setManualTitle('');
-    setManualImage('');
+    setImage('');
     setFileInputKey((key) => key + 1);
   };
 
-  const handleManualImageFileChange = (e) => {
+  const handleImageFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) {
-      setManualImage('');
+      setImage('');
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setManualImage(reader.result);
+    reader.onload = () => setImage(reader.result);
     reader.readAsDataURL(file);
   };
 
@@ -123,16 +161,10 @@ const Offers = () => {
     e.preventDefault();
     if (!text.trim()) return;
 
-    const title = titleSource === 'robot' ? selectedRobot?.model || null : manualTitle.trim() || null;
-    const image = titleSource === 'robot' ? selectedRobot?.image || NO_IMAGE : manualImage || null;
-
     const newOffer = {
       id: Date.now(),
       text: text.trim(),
-      link: link.trim() || null,
-      promoCode: promoCode.trim() || null,
-      title,
-      image,
+      image: image || null,
       createdAt: new Date().toISOString(),
     };
 
@@ -142,6 +174,12 @@ const Offers = () => {
 
   const handleDelete = (id) => {
     setOffers(offers.filter((offer) => offer.id !== id));
+  };
+
+  const previewOffer = {
+    text: text.trim(),
+    image: image || null,
+    createdAt: new Date().toISOString(),
   };
 
   return (
@@ -161,103 +199,64 @@ const Offers = () => {
               onChange={(e) => setText(e.target.value)}
             />
 
-            <input
-              type="text"
-              className="form-control mb-2"
-              placeholder={t('offerLinkPlaceholder')}
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-            />
-            <input
-              type="text"
-              className="form-control mb-3"
-              placeholder={t('promoCodePlaceholder')}
-              value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value)}
-            />
+            <div className="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-light btn-sm"
+                aria-label={t('offerImagePlaceholder')}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <img
+                  src="/images/image.png"
+                  className="img-fluid"
+                  style={{ maxHeight: '1.3rem' }}
+                  alt={t('offerImagePlaceholder')}
+                />
+              </button>
 
-            <div className="d-flex gap-3 mb-2">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="radio"
-                  name="offerTitleSource"
-                  id="offerTitleSourceManual"
-                  checked={titleSource === 'manual'}
-                  onChange={() => setTitleSource('manual')}
-                />
-                <label className="form-check-label" htmlFor="offerTitleSourceManual">
-                  {t('addManually')}
-                </label>
-              </div>
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="radio"
-                  name="offerTitleSource"
-                  id="offerTitleSourceRobot"
-                  checked={titleSource === 'robot'}
-                  onChange={() => setTitleSource('robot')}
-                />
-                <label className="form-check-label" htmlFor="offerTitleSourceRobot">
-                  {t('selectRobotFromDatabase')}
-                </label>
-              </div>
+              {image && (
+                <div className="position-relative">
+                  <img
+                    src={image}
+                    alt=""
+                    className="rounded border"
+                    style={{ width: '48px', height: '48px', objectFit: 'cover', display: 'block' }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-light btn-sm rounded-circle position-absolute top-0 start-100 translate-middle d-flex align-items-center justify-content-center p-0 shadow-sm"
+                    style={{ width: '18px', height: '18px' }}
+                    aria-label={t('Delete')}
+                    onClick={() => {
+                      setImage('');
+                      setFileInputKey((key) => key + 1);
+                    }}
+                  >
+                    <i className="fa-solid fa-xmark fa-2xs"></i>
+                  </button>
+                </div>
+              )}
             </div>
-
-            {titleSource === 'robot' ? (
-              <>
-                <select
-                  className="form-select mb-2"
-                  value={selectedRobotId}
-                  onChange={(e) => setSelectedRobotId(e.target.value)}
-                >
-                  <option value="">{t('chooseRobotPlaceholder')}</option>
-                  {sortedRobots.map((robot) => (
-                    <option key={robot.id} value={robot.id}>
-                      {robot.model}
-                    </option>
-                  ))}
-                </select>
-                {selectedRobot && (
-                  <div className="border rounded overflow-hidden">
-                    <OfferMedia
-                      image={selectedRobot.image || NO_IMAGE}
-                      title={selectedRobot.model}
-                      promoCode={promoCode}
-                    />
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  className="form-control mb-2"
-                  placeholder={t('manualTitlePlaceholder')}
-                  value={manualTitle}
-                  onChange={(e) => setManualTitle(e.target.value)}
-                />
-                <label className="form-label small text-muted mb-1">{t('manualImagePlaceholder')}</label>
-                <input
-                  key={fileInputKey}
-                  type="file"
-                  accept="image/*"
-                  className="form-control"
-                  onChange={handleManualImageFileChange}
-                />
-                {manualImage && (
-                  <div className="border rounded overflow-hidden mt-2">
-                    <OfferMedia image={manualImage} title={manualTitle} promoCode={promoCode} />
-                  </div>
-                )}
-              </>
-            )}
+            <input
+              ref={fileInputRef}
+              key={fileInputKey}
+              type="file"
+              accept="image/*"
+              className="d-none"
+              onChange={handleImageFileChange}
+            />
           </div>
 
           <button type="submit" className="btn btn-primary text-center" disabled={!text.trim()}>
             {t('postOffer')}
           </button>
+
+          {previewOffer.text && (
+            <div className="mt-4">
+              <div className="text-muted small text-uppercase mb-2">{t('offerPreview')}</div>
+              <OfferCard offer={previewOffer} lang={lang} robots={robots} consumables={consumables} isAdmin={false} />
+            </div>
+          )}
         </form>
       )}
 
@@ -265,58 +264,15 @@ const Offers = () => {
         <div className="text-center text-muted mt-4">{t('noOffersYet')}</div>
       ) : (
         offers.map((offer) => (
-          <div className="card mb-3 position-relative" key={offer.id}>
-            {isAdmin && (
-              <button
-                type="button"
-                className="btn btn-light position-absolute top-0 end-0 m-2 rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                style={{ width: '28px', height: '28px', padding: 0 }}
-                aria-label={t('Delete')}
-                data-bs-toggle="modal"
-                data-bs-target="#deleteOfferModal"
-                onClick={() => setOfferIdToDelete(offer.id)}
-              >
-                <i className="fa-solid fa-trash fa-xs text-danger"></i>
-              </button>
-            )}
-            <div className="card-body">
-              <div className="text-muted small mb-2">{formatRelativeTime(offer.createdAt, lang)}</div>
-              <p className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>
-                {offer.text}
-              </p>
-
-              {offer.image || offer.title ? (
-                offer.link ? (
-                  <a
-                    href={offer.link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="d-block border rounded overflow-hidden text-decoration-none text-dark mb-2"
-                  >
-                    <OfferMedia image={offer.image} title={offer.title} promoCode={offer.promoCode} />
-                  </a>
-                ) : (
-                  <div className="border rounded overflow-hidden mb-2">
-                    <OfferMedia image={offer.image} title={offer.title} promoCode={offer.promoCode} />
-                  </div>
-                )
-              ) : (
-                <>
-                  {offer.link && (
-                    <a href={offer.link} target="_blank" rel="noreferrer" className="d-block mb-2">
-                      {offer.link}
-                    </a>
-                  )}
-                  {offer.promoCode && (
-                    <div>
-                      <span className="text-muted small me-2">{t('promoCode')}:</span>
-                      <span className="fw-bold font-monospace">{offer.promoCode}</span>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+          <OfferCard
+            key={offer.id}
+            offer={offer}
+            lang={lang}
+            robots={robots}
+            consumables={consumables}
+            isAdmin={isAdmin}
+            onRequestDelete={setOfferIdToDelete}
+          />
         ))
       )}
 
