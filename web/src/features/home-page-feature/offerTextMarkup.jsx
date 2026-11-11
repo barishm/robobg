@@ -66,8 +66,46 @@ const findMarkdownLinkMatches = (text) => {
   return matches;
 };
 
+// A line starting with "# " is a title (like a markdown heading). Offers have
+// no separate title property: the composer's Title field is prepended to the
+// text this way.
+const TITLE_LINE_REGEX = /^# (.*)$/gm;
+
+export const composeOfferText = (title, body) => {
+  const cleanTitle = title.replace(/\s+/g, ' ').trim();
+  const cleanBody = body.trim();
+  if (!cleanTitle) return cleanBody;
+  return cleanBody ? `# ${cleanTitle}\n${cleanBody}` : `# ${cleanTitle}`;
+};
+
 export const renderOfferText = (text, robots, consumables) => {
   if (!text) return null;
+
+  const nodes = [];
+  let cursor = 0;
+  TITLE_LINE_REGEX.lastIndex = 0;
+  let match;
+  while ((match = TITLE_LINE_REGEX.exec(text))) {
+    if (match.index > cursor) {
+      nodes.push(...renderInline(text.slice(cursor, match.index), robots, consumables, `c${cursor}-`));
+    }
+    nodes.push(
+      <span key={`title-${match.index}`} className="d-block fw-bold fs-5 mb-1">
+        {renderInline(match[1], robots, consumables, `t${match.index}-`)}
+      </span>
+    );
+    cursor = match.index + match[0].length;
+    // The title is already a block, so its own line break would add an empty line.
+    if (text[cursor] === '\n') cursor += 1;
+  }
+  if (cursor < text.length) {
+    nodes.push(...renderInline(text.slice(cursor), robots, consumables, `c${cursor}-`));
+  }
+  return nodes;
+};
+
+const renderInline = (text, robots, consumables, keyPrefix) => {
+  if (!text) return [];
 
   const entities = [
     ...(robots || []).map((robot) => ({
@@ -112,21 +150,21 @@ export const renderOfferText = (text, robots, consumables) => {
     if (match.type === 'mdlink') {
       const href = match.url.startsWith('http') ? match.url : `https://${match.url}`;
       nodes.push(
-        <a key={`mdlink-${index}`} href={href} target="_blank" rel="noreferrer" className="text-info">
+        <a key={`${keyPrefix}mdlink-${index}`} href={href} target="_blank" rel="noreferrer" className="text-info">
           {match.label}
         </a>
       );
     } else if (match.type === 'url') {
       const href = match.label.startsWith('http') ? match.label : `https://${match.label}`;
       nodes.push(
-        <a key={`url-${index}`} href={href} target="_blank" rel="noreferrer" className="text-info">
+        <a key={`${keyPrefix}url-${index}`} href={href} target="_blank" rel="noreferrer" className="text-info">
           {match.label}
         </a>
       );
     } else {
       const to = match.type === 'robot' ? `/robots/${match.id}` : `/consumables/${match.id}`;
       nodes.push(
-        <Link key={`${match.type}-${index}`} to={to} target="_blank" rel="noreferrer" className="text-info">
+        <Link key={`${keyPrefix}${match.type}-${index}`} to={to} target="_blank" rel="noreferrer" className="text-info">
           {match.image && (
             <img
               src={match.image}

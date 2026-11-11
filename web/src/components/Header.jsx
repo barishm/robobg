@@ -4,6 +4,14 @@ import { logOut } from 'src/app/redux/authSlice';
 import { setLanguage } from 'src/app/redux/languageSlice';
 import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import UserMenu from 'src/components/UserMenu';
+import {
+  getProfilePicture,
+  saveProfilePicture,
+  removeProfilePicture,
+} from 'src/utils/profilePicture';
 
 const Header = ({ setDashboardsActiveComponent }) => {
   const {t} = useTranslation()
@@ -19,8 +27,35 @@ const Header = ({ setDashboardsActiveComponent }) => {
     dispatch(setLanguage(language));
   };
 
+  const [profilePicture, setProfilePicture] = useState(null);
+
+  useEffect(() => {
+    setProfilePicture(getProfilePicture(username));
+  }, [username]);
+
   const logoutUser = () => {
     dispatch(logOut());
+  };
+
+  const changeProfilePicture = async (file) => {
+    try {
+      setProfilePicture(await saveProfilePicture(username, file));
+    } catch {
+      toast.error(t('profilePictureError'));
+    }
+  };
+
+  const deleteProfilePicture = () => {
+    removeProfilePicture(username);
+    setProfilePicture(null);
+  };
+
+  const userMenuProps = {
+    username,
+    profilePicture,
+    onChangePicture: changeProfilePicture,
+    onRemovePicture: deleteProfilePicture,
+    onSignOut: logoutUser,
   };
 
   const closeCollapse = () => {
@@ -52,25 +87,7 @@ const Header = ({ setDashboardsActiveComponent }) => {
         </a>
         <div className="d-flex align-items-center">
           {username ? (
-            <div className="dropdown d-md-none">
-              <button
-                className="dropdown-toggle rounded-3 me-md-1 btn btn-primary rounded-5"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                <i className="fa-solid fa-user"></i>
-              </button>
-              <ul className="dropdown-menu">
-                <li>
-                  <span className="dropdown-item-text">@{username}</span>
-                </li>
-                <li>
-                  <button className="dropdown-item" onClick={logoutUser}>
-                    {lang === 'en' ? 'Sign out' : 'Отписване'}
-                  </button>
-                </li>
-              </ul>
-            </div>
+            <UserMenu className="d-md-none" {...userMenuProps} />
           ) : (
             <button
               className="btn btn-primary rounded-5 d-md-none"
@@ -248,25 +265,7 @@ const Header = ({ setDashboardsActiveComponent }) => {
             )} */}
           </ul>
           {username ? (
-            <div className="dropdown d-none d-md-block">
-              <button
-                className="dropdown-toggle rounded-3 me-md-1 btn btn-primary rounded-5"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                <i className="fa-solid fa-user"></i>
-              </button>
-              <ul className="dropdown-menu">
-                <li>
-                  <span className="dropdown-item-text">@{username}</span>
-                </li>
-                <li>
-                  <button className="dropdown-item" onClick={logoutUser}>
-                    {lang === 'en' ? 'Sign out' : 'Отписване'}
-                  </button>
-                </li>
-              </ul>
-            </div>
+            <UserMenu className="d-none d-md-block" {...userMenuProps} />
           ) : (
             <button
               className="btn btn-primary d-none d-md-block rounded-5"
