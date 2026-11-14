@@ -4,20 +4,19 @@ import { logOut } from 'src/app/redux/authSlice';
 import { setLanguage } from 'src/app/redux/languageSlice';
 import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import UserMenu from 'src/components/UserMenu';
 import {
-  getProfilePicture,
-  saveProfilePicture,
-  removeProfilePicture,
-} from 'src/utils/profilePicture';
+  useGetCurrentUserQuery,
+  useUploadProfilePictureMutation,
+  useDeleteProfilePictureMutation,
+} from 'src/app/services/userApiSlice';
 
 const Header = ({ setDashboardsActiveComponent }) => {
   const {t} = useTranslation()
 
   const dispatch = useDispatch();
-  const { username, role } = useSelector((state) => state.auth);
+  const { username, role, accessToken } = useSelector((state) => state.auth);
   const lang = useSelector((state) => state.language.lang);
 
   const navigate = useNavigate();
@@ -27,34 +26,38 @@ const Header = ({ setDashboardsActiveComponent }) => {
     dispatch(setLanguage(language));
   };
 
-  const [profilePicture, setProfilePicture] = useState(null);
-
-  useEffect(() => {
-    setProfilePicture(getProfilePicture(username));
-  }, [username]);
+  const { data: currentUser } = useGetCurrentUserQuery(accessToken, { skip: !accessToken });
+  const profilePicture = currentUser?.profilePicture ?? null;
+  const [uploadProfilePicture] = useUploadProfilePictureMutation();
+  const [deleteProfilePicture] = useDeleteProfilePictureMutation();
 
   const logoutUser = () => {
     dispatch(logOut());
   };
 
   const changeProfilePicture = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
     try {
-      setProfilePicture(await saveProfilePicture(username, file));
+      await uploadProfilePicture({ accessToken, formData }).unwrap();
     } catch {
       toast.error(t('profilePictureError'));
     }
   };
 
-  const deleteProfilePicture = () => {
-    removeProfilePicture(username);
-    setProfilePicture(null);
+  const removeProfilePicture = async () => {
+    try {
+      await deleteProfilePicture(accessToken).unwrap();
+    } catch {
+      toast.error(t('somethingWentWrong'));
+    }
   };
 
   const userMenuProps = {
     username,
     profilePicture,
     onChangePicture: changeProfilePicture,
-    onRemovePicture: deleteProfilePicture,
+    onRemovePicture: removeProfilePicture,
     onSignOut: logoutUser,
   };
 

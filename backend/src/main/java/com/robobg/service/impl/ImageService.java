@@ -96,6 +96,65 @@ public class ImageService {
         return savedFiles;
     }
 
+    // Keeps the aspect ratio (link previews are wide), only shrinks images wider than 1000px
+    public String storeOfferImage(Long offerId, MultipartFile file) throws IOException {
+
+        validateImage(file);
+
+        byte[] bytes = file.getBytes();
+        BufferedImage original = ImageIO.read(new ByteArrayInputStream(bytes));
+        if (original == null) {
+            throw new IllegalArgumentException("File is not a valid image");
+        }
+        original = applyExifOrientation(original, getExifOrientation(bytes));
+
+        BufferedImage processed = resizeToMaxWidth(original, 1000);
+
+        String fileName = generateFileName("Offer", offerId);
+        Path outputPath = storageDir.resolve(fileName);
+
+        Files.createDirectories(outputPath.getParent());
+
+        writeJpeg(processed, outputPath, COMPRESSION_QUALITY);
+
+        return fileName;
+    }
+
+    public String storeProfilePicture(Long userId, MultipartFile file) throws IOException {
+
+        validateImage(file);
+
+        byte[] bytes = file.getBytes();
+        BufferedImage original = ImageIO.read(new ByteArrayInputStream(bytes));
+        if (original == null) {
+            throw new IllegalArgumentException("File is not a valid image");
+        }
+        original = applyExifOrientation(original, getExifOrientation(bytes));
+
+        BufferedImage processed = cropAndResizeToSquare(original, 256);
+
+        String fileName = generateFileName("User", userId);
+        Path outputPath = storageDir.resolve(fileName);
+
+        Files.createDirectories(outputPath.getParent());
+
+        writeJpeg(processed, outputPath, COMPRESSION_QUALITY);
+
+        return fileName;
+    }
+
+    public void deleteImage(String fileName) {
+        if (fileName == null || fileName.isBlank() || fileName.startsWith("http")) {
+            return;
+        }
+        Path path = storageDir.resolve(fileName);
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            logger.warn("Failed to delete image {}: {}", path, e.getMessage());
+        }
+    }
+
     // -------------------- VALIDATION --------------------
 
     private void validateImage(MultipartFile file) {
@@ -292,6 +351,27 @@ public class ImageService {
                 RenderingHints.VALUE_INTERPOLATION_BICUBIC
         );
         g2d.drawImage(rgb, 0, 0, size, size, null);
+        g2d.dispose();
+
+        return resized;
+    }
+
+    private BufferedImage resizeToMaxWidth(BufferedImage original, int maxWidth) {
+
+        BufferedImage rgb = toRGB(original);
+        if (rgb.getWidth() <= maxWidth) {
+            return rgb;
+        }
+
+        int height = Math.max(1, Math.round(rgb.getHeight() * (maxWidth / (float) rgb.getWidth())));
+        BufferedImage resized = new BufferedImage(maxWidth, height, BufferedImage.TYPE_INT_RGB);
+
+        Graphics2D g2d = resized.createGraphics();
+        g2d.setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BICUBIC
+        );
+        g2d.drawImage(rgb, 0, 0, maxWidth, height, null);
         g2d.dispose();
 
         return resized;

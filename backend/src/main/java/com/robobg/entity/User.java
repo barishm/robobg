@@ -36,6 +36,10 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    // File name inside the files folder, like Robot.image
+    @Column(name = "profile_picture")
+    private String profilePicture;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return role.getAuthorities();

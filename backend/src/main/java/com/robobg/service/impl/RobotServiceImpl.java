@@ -453,17 +453,15 @@ public class RobotServiceImpl implements RobotService {
                         "Robot with ID " + robotId + " does not exist."
                 ));
 
-        // Delete old image if exists
-        if (robot.getImage() != null) {
-            Path oldImagePath = Paths.get("app/files", robot.getImage());
-            Files.deleteIfExists(oldImagePath);
-        }
-
         // Delegate ALL image processing to ImageService
+        String oldImage = robot.getImage();
         String newFileName = imageService.storeRobotImage(robotId, file);
 
         robot.setImage(newFileName);
         robotRepository.save(robot);
+
+        // Delete old image only after the new one is stored, so a bad upload keeps the current image
+        imageService.deleteImage(oldImage);
 
         System.out.println("Image uploaded successfully for robot ID: " + robotId);
     }

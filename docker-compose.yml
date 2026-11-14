@@ -31,7 +31,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       DOMAIN: ${DOMAIN}
       WEB_PROTOCOL: ${WEB_PROTOCOL}
-      APP_FILES_PATH: ${APP_FILES_PATH}
+      APP_FILES_PATH: /files
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
       CHANNEL_ID: ${CHANNEL_ID}
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
@@ -44,7 +44,7 @@ services:
       - "${APP_PORT}:${APP_PORT}"        # host -> container
     restart: unless-stopped
     volumes:
-      - ${FILES_PATH}:/files
-      - ${LOGS_PATH}:/logs
+      - ./files:/files
+      - ./logs:/logs
 volumes:
   pgdata:

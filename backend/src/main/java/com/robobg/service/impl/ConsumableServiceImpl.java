@@ -221,19 +221,16 @@ public class ConsumableServiceImpl implements ConsumableService {
                         "Consumable with ID " + consumableId + " does not exist."
                 ));
 
-        // 1. Delete old images FIRST (after we know entity exists)
-        if (consumable.getImages() != null) {
-            for (String imageName : consumable.getImages()) {
-                Path oldImagePath = Paths.get("app/files", imageName);
-                Files.deleteIfExists(oldImagePath);
-            }
-        }
+        List<String> oldImages = consumable.getImages() != null ? new ArrayList<>(consumable.getImages()) : List.of();
 
-        // 2. Save new images via ImageService
+        // 1. Save new images via ImageService
         List<String> newImages = imageService.storeConsumablesImages(consumableId, files);
 
-        // 3. Update DB
+        // 2. Update DB
         consumable.setImages(newImages);
         consumableRepository.save(consumable);
+
+        // 3. Delete old images only after the new ones are stored, so a bad upload keeps the current images
+        oldImages.forEach(imageService::deleteImage);
     }
 }

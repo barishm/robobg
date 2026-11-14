@@ -35,11 +35,49 @@ export const userApiSlice = apiSlice.injectEndpoints({
                 },
             }),
             providesTags: ['User'],
+        }),
+        getCurrentUser: builder.query({
+            query: (accessToken) => ({
+                url: "v1/user/me",
+                method: "GET",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+            }),
+            providesTags: ['CurrentUser'],
+        }),
+        uploadProfilePicture: builder.mutation({
+            query: ({accessToken, formData}) => ({
+                url: "v1/user/profile-picture",
+                method: "POST",
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: formData,
+                formData:true
+            }),
+            // Offers show their author's current picture
+            invalidatesTags: ['CurrentUser', 'Offer'],
+        }),
+        deleteProfilePicture: builder.mutation({
+            query: (accessToken) => ({
+                url: "v1/user/profile-picture",
+                method: "DELETE",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+            }),
+            invalidatesTags: ['CurrentUser', 'Offer'],
         })
     })
 })
 export const {
     useGetAllUsersQuery,
     useUpdateUserMutation,
-    useGetAllModeratorsQuery
+    useGetAllModeratorsQuery,
+    useGetCurrentUserQuery,
+    useUploadProfilePictureMutation,
+    useDeleteProfilePictureMutation
 } = userApiSlice;

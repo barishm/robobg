@@ -1,11 +1,13 @@
 package com.robobg.controller;
 
 import com.robobg.dtos.ConsumableDTO.CreateConsumableDTO;
+import com.robobg.dtos.OfferDTO.OfferDTO;
 import com.robobg.dtos.QnaDTO.LatestQuestionsDTO;
 import com.robobg.dtos.RobotDTO.CreateMostComparedDTO;
 import com.robobg.dtos.RobotDTO.CreatePurchaseLinkDTO;
 import com.robobg.dtos.RobotDTO.CreateRobotDTO;
 import com.robobg.dtos.UserDTO.UserIdUsernameRoleDTO;
+import com.robobg.entity.User;
 import com.robobg.exceptions.EntityNotFoundException;
 import com.robobg.exceptions.RobotAlreadyExistsException;
 import com.robobg.service.*;
@@ -13,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.crossstore.ChangeSetPersister;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,14 +33,16 @@ public class ModeratorController {
     private final MostComparedService mostComparedService;
     private final QuestionService questionService;
     private final ConsumableService consumableService;
+    private final OfferService offerService;
     @Autowired
-    public ModeratorController(RobotService robotService, UserService userService, PurchaseLinkService purchaseLinkService, MostComparedService mostComparedService, QuestionService questionService, ConsumableService consumableService) {
+    public ModeratorController(RobotService robotService, UserService userService, PurchaseLinkService purchaseLinkService, MostComparedService mostComparedService, QuestionService questionService, ConsumableService consumableService, OfferService offerService) {
         this.robotService = robotService;
         this.userService = userService;
         this.purchaseLinkService = purchaseLinkService;
         this.mostComparedService = mostComparedService;
         this.questionService = questionService;
         this.consumableService = consumableService;
+        this.offerService = offerService;
     }
 
     @DeleteMapping("/robots/{id}")
@@ -127,5 +132,29 @@ public class ModeratorController {
         return questionService.getLatestQuestions();
     }
 
+
+    @PostMapping("/offers")
+    public OfferDTO createOffer(@RequestParam(value = "text", required = false) String text,
+                                @RequestParam(value = "linkUrl", required = false) String linkUrl,
+                                @RequestParam(value = "linkTitle", required = false) String linkTitle,
+                                @RequestParam(value = "linkImage", required = false) MultipartFile linkImage,
+                                @AuthenticationPrincipal User author) throws IOException {
+        return offerService.createOffer(text, linkUrl, linkTitle, linkImage, author);
+    }
+
+    @PutMapping("/offers/{id}")
+    public OfferDTO updateOffer(@PathVariable Long id,
+                                @RequestParam(value = "text", required = false) String text,
+                                @RequestParam(value = "linkUrl", required = false) String linkUrl,
+                                @RequestParam(value = "linkTitle", required = false) String linkTitle,
+                                @RequestParam(value = "linkImage", required = false) MultipartFile linkImage,
+                                @RequestParam(value = "removeLinkImage", defaultValue = "false") boolean removeLinkImage) throws IOException {
+        return offerService.updateOffer(id, text, linkUrl, linkTitle, linkImage, removeLinkImage);
+    }
+
+    @DeleteMapping("/offers/{id}")
+    public void deleteOffer(@PathVariable Long id) throws EntityNotFoundException {
+        offerService.deleteOffer(id);
+    }
 
 }

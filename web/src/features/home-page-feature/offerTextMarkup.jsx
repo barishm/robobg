@@ -78,6 +78,14 @@ export const composeOfferText = (title, body) => {
   return cleanBody ? `# ${cleanTitle}\n${cleanBody}` : `# ${cleanTitle}`;
 };
 
+// Inverse of composeOfferText, for editing a saved offer.
+export const splitOfferText = (text) => {
+  if (!text) return { title: '', body: '' };
+  const match = /^# (.*)(?:\n|$)/.exec(text);
+  if (!match) return { title: '', body: text };
+  return { title: match[1], body: text.slice(match[0].length) };
+};
+
 export const renderOfferText = (text, robots, consumables) => {
   if (!text) return null;
 
@@ -164,7 +172,7 @@ const renderInline = (text, robots, consumables, keyPrefix) => {
     } else {
       const to = match.type === 'robot' ? `/robots/${match.id}` : `/consumables/${match.id}`;
       nodes.push(
-        <Link key={`${keyPrefix}${match.type}-${index}`} to={to} target="_blank" rel="noreferrer" className="text-info">
+        <Link key={`${keyPrefix}${match.type}-${index}`} to={to} target="_blank" rel="noreferrer" className="text-body">
           {match.image && (
             <img
               src={match.image}

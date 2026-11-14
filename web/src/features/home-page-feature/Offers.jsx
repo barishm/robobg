@@ -1,30 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 import { useGetAllRobotsQuery } from 'src/app/services/robotApiSlice';
 import { useGetAllConsumablesQuery } from 'src/app/services/consumableApiSlice';
-import { composeOfferText, renderOfferText } from './offerTextMarkup';
-import { getProfilePicture } from 'src/utils/profilePicture';
+import {
+  useGetAllOffersQuery,
+  useCreateOfferMutation,
+  useUpdateOfferMutation,
+  useDeleteOfferMutation,
+} from 'src/app/services/offerApiSlice';
+import { useGetCurrentUserQuery } from 'src/app/services/userApiSlice';
+import { composeOfferText, splitOfferText, renderOfferText } from './offerTextMarkup';
 
 const RELATIVE_TIME_REFRESH_MS = 30000;
-const OFFERS_STORAGE_KEY = 'robobg_offers';
-
-// Offers have no backend yet, so they're kept in the browser's sessionStorage
-// (not cookies: an offer's link can carry a base64 image, which would blow past
-// cookies' ~4KB limit and get sent to the server on every request for no
-// reason) so they survive a page reload instead of only living in memory.
-// Not localStorage: logging out (including the automatic logout any
-// signed-out visit triggers) calls localStorage.clear(), which would wipe
-// the offers along with the auth token.
-const loadStoredOffers = () => {
-  try {
-    const raw = sessionStorage.getItem(OFFERS_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
 
 const LINK_IMAGE_MAX_WIDTH = 1000;
 const EMPTY_LINK = { title: '', url: '', image: '' };
@@ -43,8 +32,8 @@ const hostnameOf = (url) => {
   }
 };
 
-// Shrinks big photos before they're stored as base64, so a single link image
-// doesn't eat most of sessionStorage's ~5MB quota.
+// Shrinks big photos before upload (the backend resizes too, but this keeps
+// the request small) and gives a data URL for the preview.
 const readLinkImage = (file) =>
   new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -67,6 +56,8 @@ const readLinkImage = (file) =>
     };
     img.src = url;
   });
+
+const dataUrlToBlob = async (dataUrl) => (await fetch(dataUrl)).blob();
 
 const bgUnit = (count, singular, plural) => `преди ${count} ${count === 1 ? singular : plural}`;
 const enUnit = (count, unit) => `${count} ${unit}${count === 1 ? '' : 's'} ago`;
@@ -120,17 +111,16 @@ const AuthorAvatar = ({ author }) => {
 };
 
 // Link preview card: image on top, then a grey footer with the URL's domain
-// (e.g. "AMAZON.DE") and the title, the whole card opening the URL.
+// (e.g. "AMAZON.DE") and the title, the whole card opening the URL. An offer
+// can also have just an image (no URL): then it's shown without the footer
+// and isn't clickable.
 const LinkPreview = ({ link }) => {
-  if (!link?.url) return null;
-  const domain = hostnameOf(link.url);
+  if (!link?.url && !link?.title && !link?.image) return null;
+  const domain = link.url ? hostnameOf(link.url) : '';
+  const Wrapper = link.url ? 'a' : 'div';
+  const linkProps = link.url ? { href: normalizeUrl(link.url), target: '_blank', rel: 'noreferrer' } : {};
   return (
-    <a
-      href={normalizeUrl(link.url)}
-      target="_blank"
-      rel="noreferrer"
-      className="d-block text-reset text-decoration-none border-top"
-    >
+    <Wrapper {...linkProps} className="d-block text-reset text-decoration-none border-top">
       {link.image && (
         <img
           src={link.image}
@@ -139,46 +129,58 @@ const LinkPreview = ({ link }) => {
           style={{ display: 'block', maxHeight: '360px', objectFit: 'cover' }}
         />
       )}
-      <div className="px-3 py-2 bg-body-tertiary">
-        {domain && (
-          <div className="text-muted text-uppercase text-truncate" style={{ fontSize: '0.8rem' }}>
-            {domain}
-          </div>
-        )}
-        {link.title && (
-          <div
-            className="fw-semibold"
-            style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
-            {link.title}
-          </div>
-        )}
-      </div>
-    </a>
+      {(domain || link.title) && (
+        <div className="px-3 py-2 bg-body-tertiary">
+          {domain && (
+            <div className="text-muted text-uppercase text-truncate" style={{ fontSize: '0.8rem' }}>
+              {domain}
+            </div>
+          )}
+          {link.title && (
+            <div
+              className="fw-semibold"
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {link.title}
+            </div>
+          )}
+        </div>
+      )}
+    </Wrapper>
   );
 };
 
-const OfferCard = ({ offer, lang, robots, consumables, isAdmin, onRequestDelete }) => {
+const OfferCard = ({ offer, lang, robots, consumables, isAdmin, onRequestEdit, onRequestDelete }) => {
   const { t } = useTranslation();
 
   return (
     <div className="card mb-3 position-relative overflow-hidden">
       {isAdmin && onRequestDelete && (
-        <button
-          type="button"
-          className="btn btn-sm btn-danger position-absolute top-0 end-0 m-2"
-          style={{ zIndex: 1 }}
-          data-bs-toggle="modal"
-          data-bs-target="#deleteOfferModal"
-          onClick={() => onRequestDelete(offer.id)}
-        >
-          {t('Delete')}
-        </button>
+        <div className="position-absolute top-0 end-0 m-2" style={{ zIndex: 1 }}>
+          <button
+            type="button"
+            className="btn btn-sm btn-primary me-1"
+            data-bs-toggle="modal"
+            data-bs-target="#editOfferModal"
+            onClick={() => onRequestEdit(offer)}
+          >
+            {t('Edit')}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-danger"
+            data-bs-toggle="modal"
+            data-bs-target="#deleteOfferModal"
+            onClick={() => onRequestDelete(offer.id)}
+          >
+            {t('Delete')}
+          </button>
+        </div>
       )}
       <div className="card-body">
         <div className="d-flex align-items-center gap-2 mb-2">
@@ -197,7 +199,20 @@ const OfferCard = ({ offer, lang, robots, consumables, isAdmin, onRequestDelete 
   );
 };
 
-const LinkModal = ({ draft, setDraft, onSave }) => {
+// The whole offer as it will look once posted: author, title, text and link.
+const OfferPreview = ({ offer, lang, robots, consumables }) => {
+  const { t } = useTranslation();
+  return (
+    <>
+      <div className="text-muted small text-uppercase mb-2">{t('offerPreview')}</div>
+      <OfferCard offer={offer} lang={lang} robots={robots} consumables={consumables} isAdmin={false} />
+    </>
+  );
+};
+
+// URL, title and image inputs, shared by the link modal and
+// the edit offer modal. idPrefix keeps input ids unique between the two.
+const LinkFields = ({ draft, setDraft, idPrefix }) => {
   const { t } = useTranslation();
   const [imageError, setImageError] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
@@ -221,6 +236,61 @@ const LinkModal = ({ draft, setDraft, onSave }) => {
   };
 
   return (
+    <>
+      <div className="mb-3">
+        <label className="form-label" htmlFor={`${idPrefix}Url`}>
+          URL
+        </label>
+        <input
+          id={`${idPrefix}Url`}
+          type="url"
+          className="form-control"
+          placeholder="https://www.example.com/..."
+          value={draft.url}
+          onChange={update('url')}
+        />
+      </div>
+      <div className="mb-3">
+        <label className="form-label" htmlFor={`${idPrefix}Title`}>
+          {t('title')}
+        </label>
+        <input
+          id={`${idPrefix}Title`}
+          type="text"
+          className="form-control"
+          value={draft.title}
+          onChange={update('title')}
+        />
+      </div>
+      <div className="mb-3">
+        <label className="form-label" htmlFor={`${idPrefix}Image`}>
+          {t('image')}
+        </label>
+        <div className="d-flex align-items-center gap-2">
+          <input
+            id={`${idPrefix}Image`}
+            key={fileInputKey}
+            type="file"
+            accept="image/*"
+            className="form-control"
+            onChange={handleImageChange}
+          />
+          {draft.image && (
+            <button type="button" className="btn btn-outline-danger" onClick={removeImage}>
+              {t('remove')}
+            </button>
+          )}
+        </div>
+        {imageError && <div className="text-danger small mt-1">{t('profilePictureError')}</div>}
+      </div>
+    </>
+  );
+};
+
+const LinkModal = ({ draft, setDraft, onSave, previewOffer, cardProps }) => {
+  const { t } = useTranslation();
+
+  return (
     <div className="modal fade" id="offerLinkModal" tabIndex="-1" aria-labelledby="offerLinkModalLabel" aria-hidden="true">
       <div className="modal-dialog modal-dialog-scrollable">
         <div className="modal-content">
@@ -231,61 +301,8 @@ const LinkModal = ({ draft, setDraft, onSave }) => {
             <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label={t('close')}></button>
           </div>
           <div className="modal-body">
-            <div className="mb-3">
-              <label className="form-label" htmlFor="offerLinkUrl">
-                URL
-              </label>
-              <input
-                id="offerLinkUrl"
-                type="url"
-                className="form-control"
-                placeholder="https://www.example.com/..."
-                value={draft.url}
-                onChange={update('url')}
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="offerLinkTitle">
-                {t('title')}
-              </label>
-              <input
-                id="offerLinkTitle"
-                type="text"
-                className="form-control"
-                value={draft.title}
-                onChange={update('title')}
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="offerLinkImage">
-                {t('image')}
-              </label>
-              <div className="d-flex align-items-center gap-2">
-                <input
-                  id="offerLinkImage"
-                  key={fileInputKey}
-                  type="file"
-                  accept="image/*"
-                  className="form-control"
-                  onChange={handleImageChange}
-                />
-                {draft.image && (
-                  <button type="button" className="btn btn-outline-danger" onClick={removeImage}>
-                    {t('remove')}
-                  </button>
-                )}
-              </div>
-              {imageError && <div className="text-danger small mt-1">{t('profilePictureError')}</div>}
-            </div>
-
-            {draft.url.trim() && (
-              <>
-                <div className="text-muted small text-uppercase mb-2">{t('offerPreview')}</div>
-                <div className="card overflow-hidden">
-                  <LinkPreview link={draft} />
-                </div>
-              </>
-            )}
+            <LinkFields draft={draft} setDraft={setDraft} idPrefix="offerLink" />
+            <OfferPreview offer={{ ...previewOffer, link: draft }} {...cardProps} />
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
@@ -295,7 +312,7 @@ const LinkModal = ({ draft, setDraft, onSave }) => {
               type="button"
               className="btn btn-primary"
               data-bs-dismiss="modal"
-              disabled={!draft.url.trim()}
+              disabled={!draft.url.trim() && !draft.image}
               onClick={onSave}
             >
               {t('saveLink')}
@@ -307,20 +324,108 @@ const LinkModal = ({ draft, setDraft, onSave }) => {
   );
 };
 
+// The form inside the edit modal. It gets a fresh key for every Edit click, so
+// its state starts from the offer being edited instead of leftovers from a
+// cancelled edit. Only the content remounts: the modal element itself stays,
+// so Bootstrap keeps working with the same element.
+const EditOfferForm = ({ offer, onSave, cardProps }) => {
+  const { t } = useTranslation();
+  const initial = splitOfferText(offer?.text);
+  const [title, setTitle] = useState(initial.title);
+  const [text, setText] = useState(initial.body);
+  const [linkDraft, setLinkDraft] = useState({
+    url: offer?.link?.url ?? '',
+    title: offer?.link?.title ?? '',
+    image: offer?.link?.image ?? '',
+  });
+
+  const composedText = composeOfferText(title, text);
+  const canSave = Boolean(composedText || linkDraft.url.trim() || linkDraft.image);
+
+  return (
+    <>
+      <div className="modal-body">
+        <input
+          type="text"
+          className="form-control mb-2"
+          placeholder={t('offerTitlePlaceholder')}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <textarea
+          className="form-control mb-4"
+          rows="6"
+          placeholder={t('writeOfferPlaceholder')}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <h6 className="mb-3">{t('offerLink')}</h6>
+        <LinkFields draft={linkDraft} setDraft={setLinkDraft} idPrefix="editOfferLink" />
+        {offer && (
+          <OfferPreview
+            offer={{ text: composedText, link: linkDraft, author: offer.author, createdAt: offer.createdAt }}
+            {...cardProps}
+          />
+        )}
+      </div>
+      <div className="modal-footer">
+        <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
+          {t('close')}
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-bs-dismiss="modal"
+          disabled={!offer || !canSave}
+          onClick={() => onSave(offer, composedText, linkDraft)}
+        >
+          {t('saveLink')}
+        </button>
+      </div>
+    </>
+  );
+};
+
+const EditOfferModal = ({ offer, formKey, onSave, cardProps }) => {
+  const { t } = useTranslation();
+
+  return (
+    <div className="modal fade" id="editOfferModal" tabIndex="-1" aria-labelledby="editOfferModalLabel" aria-hidden="true">
+      <div className="modal-dialog modal-dialog-scrollable modal-lg">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title" id="editOfferModalLabel">
+              {t('editOffer')}
+            </h5>
+            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label={t('close')}></button>
+          </div>
+          <EditOfferForm key={formKey} offer={offer} onSave={onSave} cardProps={cardProps} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Offers = () => {
   const { t } = useTranslation();
   const lang = useSelector((state) => state.language.lang);
-  const { username, role } = useSelector((state) => state.auth);
+  const { username, role, accessToken } = useSelector((state) => state.auth);
   const isAdmin = role === 'ADMIN' || role === 'MODERATOR';
   const { data: robots } = useGetAllRobotsQuery();
   const { data: consumables } = useGetAllConsumablesQuery();
+  const { data: offers = [] } = useGetAllOffersQuery();
+  const { data: currentUser } = useGetCurrentUserQuery(accessToken, { skip: !accessToken || !isAdmin });
+  const [createOffer, { isLoading: isPosting }] = useCreateOfferMutation();
+  const [updateOffer] = useUpdateOfferMutation();
+  const [deleteOffer] = useDeleteOfferMutation();
 
-  const [offers, setOffers] = useState(loadStoredOffers);
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [link, setLink] = useState(null);
   const [linkDraft, setLinkDraft] = useState(EMPTY_LINK);
   const [offerIdToDelete, setOfferIdToDelete] = useState(null);
+  const [offerToEdit, setOfferToEdit] = useState(null);
+  const [editKey, setEditKey] = useState(0);
   const [, setRelativeTimeTick] = useState(0);
 
   // Re-render periodically to keep "X minutes ago" timestamps fresh without
@@ -329,31 +434,6 @@ const Offers = () => {
     const intervalId = setInterval(() => setRelativeTimeTick((tick) => tick + 1), RELATIVE_TIME_REFRESH_MS);
     return () => clearInterval(intervalId);
   }, []);
-
-  // Images are base64, so a few offers with big link images or author
-  // pictures can blow past sessionStorage's quota (~5MB). If the full list
-  // doesn't fit, drop link images (oldest offers first, keeping everything
-  // else) until what's left does, so an image never costs us the whole
-  // offers list after a reload.
-  useEffect(() => {
-    const tryPersist = (list) => {
-      try {
-        sessionStorage.setItem(OFFERS_STORAGE_KEY, JSON.stringify(list));
-        return true;
-      } catch {
-        return false;
-      }
-    };
-
-    if (tryPersist(offers)) return;
-
-    const trimmed = [...offers];
-    for (let i = trimmed.length - 1; i >= 0; i--) {
-      if (!trimmed[i].link?.image) continue;
-      trimmed[i] = { ...trimmed[i], link: { ...trimmed[i].link, image: null } };
-      if (tryPersist(trimmed)) return;
-    }
-  }, [offers]);
 
   const composedText = composeOfferText(title, text);
   const canPost = Boolean(composedText || link);
@@ -374,32 +454,66 @@ const Offers = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canPost) return;
+    if (!canPost || isPosting) return;
 
-    const newOffer = {
-      id: Date.now(),
-      text: composedText,
-      link,
-      author: { username, image: getProfilePicture(username) },
-      createdAt: new Date().toISOString(),
-    };
+    const formData = new FormData();
+    if (composedText) formData.append('text', composedText);
+    if (link) {
+      formData.append('linkUrl', link.url);
+      if (link.title) formData.append('linkTitle', link.title);
+      if (link.image) formData.append('linkImage', await dataUrlToBlob(link.image), 'link.jpg');
+    }
 
-    setOffers([newOffer, ...offers]);
-    resetForm();
+    try {
+      await createOffer({ accessToken, formData }).unwrap();
+      resetForm();
+    } catch {
+      toast.error(t('somethingWentWrong'));
+    }
   };
 
-  const handleDelete = (id) => {
-    setOffers(offers.filter((offer) => offer.id !== id));
+  const requestEdit = (offer) => {
+    setOfferToEdit(offer);
+    setEditKey((key) => key + 1);
+  };
+
+  const handleUpdate = async (offer, composedText, linkDraft) => {
+    const url = linkDraft.url.trim();
+    const formData = new FormData();
+    if (composedText) formData.append('text', composedText);
+    if (url) formData.append('linkUrl', normalizeUrl(url));
+    if (linkDraft.title.trim()) formData.append('linkTitle', linkDraft.title.trim());
+    // A data URL is a newly picked image; an empty one means the old image was removed
+    if (linkDraft.image.startsWith('data:')) {
+      formData.append('linkImage', await dataUrlToBlob(linkDraft.image), 'link.jpg');
+    } else if (!linkDraft.image) {
+      formData.append('removeLinkImage', 'true');
+    }
+
+    try {
+      await updateOffer({ id: offer.id, accessToken, formData }).unwrap();
+    } catch {
+      toast.error(t('somethingWentWrong'));
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteOffer({ id, accessToken }).unwrap();
+    } catch {
+      toast.error(t('somethingWentWrong'));
+    }
   };
 
   const previewOffer = {
     text: composedText,
     link,
-    author: { username, image: getProfilePicture(username) },
+    author: { username, image: currentUser?.profilePicture ?? null },
     createdAt: new Date().toISOString(),
   };
+  const cardProps = { lang, robots, consumables };
 
   return (
     <div style={{ marginTop: '20px', marginBottom: '50px' }}>
@@ -440,7 +554,7 @@ const Offers = () => {
               {link && (
                 <span className="d-inline-flex align-items-center gap-1 small text-muted" style={{ minWidth: 0 }}>
                   <span className="text-truncate" style={{ maxWidth: '240px' }}>
-                    {link.title || link.url}
+                    {link.title || link.url || t('image')}
                   </span>
                   <button
                     type="button"
@@ -456,20 +570,28 @@ const Offers = () => {
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary text-center" disabled={!canPost}>
+          <button type="submit" className="btn btn-primary text-center" disabled={!canPost || isPosting}>
             {t('postOffer')}
           </button>
 
           {canPost && (
             <div className="mt-4">
-              <div className="text-muted small text-uppercase mb-2">{t('offerPreview')}</div>
-              <OfferCard offer={previewOffer} lang={lang} robots={robots} consumables={consumables} isAdmin={false} />
+              <OfferPreview offer={previewOffer} {...cardProps} />
             </div>
           )}
         </form>
       )}
 
-      {isAdmin && <LinkModal draft={linkDraft} setDraft={setLinkDraft} onSave={saveLink} />}
+      {isAdmin && (
+        <LinkModal
+          draft={linkDraft}
+          setDraft={setLinkDraft}
+          onSave={saveLink}
+          previewOffer={previewOffer}
+          cardProps={cardProps}
+        />
+      )}
+      {isAdmin && <EditOfferModal formKey={editKey} offer={offerToEdit} onSave={handleUpdate} cardProps={cardProps} />}
 
       {offers.length === 0 ? (
         <div className="text-center text-muted mt-4">{t('noOffersYet')}</div>
@@ -482,6 +604,7 @@ const Offers = () => {
             robots={robots}
             consumables={consumables}
             isAdmin={isAdmin}
+            onRequestEdit={requestEdit}
             onRequestDelete={setOfferIdToDelete}
           />
         ))
