@@ -5,14 +5,13 @@ import { useGetAllRobotsQuery } from 'src/app/services/robotApiSlice';
 import { useGetAllConsumablesQuery } from 'src/app/services/consumableApiSlice';
 import { useGetOfferByIdQuery } from 'src/app/services/offerApiSlice';
 import Loading from 'src/components/Loading';
-import PopularComparisons from 'src/components/PopularComparisons';
-import HomePageCompareForm from 'src/features/home-page-feature/HomePageCompareForm';
 import { OfferCard } from 'src/features/home-page-feature/OfferCard';
 import { DeleteOfferModal, EditOfferModal } from 'src/features/home-page-feature/OfferEditor';
-import { splitOfferText, stripFormatting } from 'src/features/home-page-feature/offerTextMarkup';
+import { offerDisplayTitle } from 'src/features/home-page-feature/offerTextMarkup';
 import useOfferActions from 'src/features/home-page-feature/useOfferActions';
 import { useRelativeTimeTick } from 'src/features/home-page-feature/offerUtils';
 
+// A single offer on its own page: only the offer, no sidebar.
 const Offer = () => {
   const { t } = useTranslation();
   const { id } = useParams();
@@ -25,47 +24,46 @@ const Offer = () => {
   const { data: consumables } = useGetAllConsumablesQuery();
   const { data: offer, isLoading, isError } = useGetOfferByIdQuery({ id });
   const { offerToEdit, editKey, requestEdit, handleUpdate, requestDelete, handleDelete } = useOfferActions({
-    onDeleted: () => navigate('/'),
+    onDeleted: () => navigate('/offers'),
   });
 
   useRelativeTimeTick();
 
   const cardProps = { lang, robots, consumables };
-  const breadcrumbTitle = offer ? stripFormatting(splitOfferText(offer.text).title) || offer.link?.title : '';
+  const breadcrumbTitle = offerDisplayTitle(offer) || `#${id}`;
 
   return (
-    <section className="mt-4">
-      <div className="container d-flex">
-        <div className="col-12 col-md-12 col-lg-9">
-          <div style={{ marginTop: '20px', marginBottom: '50px' }}>
-            <ol className="breadcrumb">
-              <li className="breadcrumb-item">
-                <a onClick={() => navigate('/')} className="text-primary" style={{ cursor: 'pointer' }}>
-                  {t('offers')}
-                </a>
+    <div className="container my-4">
+      <div className="row justify-content-center">
+        <div className="col-12" style={{ maxWidth: '900px' }}>
+          <ol className="breadcrumb flex-nowrap">
+            <li className="breadcrumb-item">
+              <a onClick={() => navigate('/offers')} className="text-primary" style={{ cursor: 'pointer' }}>
+                {t('offers')}
+              </a>
+            </li>
+            {offer && (
+              <li className="breadcrumb-item active text-truncate" style={{ minWidth: 0, flex: '1 1 0' }} title={breadcrumbTitle}>
+                {breadcrumbTitle}
               </li>
-              {breadcrumbTitle && (
-                <li className="breadcrumb-item active text-truncate" style={{ maxWidth: '60%' }}>
-                  {breadcrumbTitle}
-                </li>
-              )}
-            </ol>
-
-            {isLoading ? (
-              <Loading />
-            ) : isError || !offer ? (
-              <div className="text-center text-muted mt-4">{t('offerNotFound')}</div>
-            ) : (
-              <OfferCard
-                offer={offer}
-                isAdmin={isAdmin}
-                onRequestEdit={requestEdit}
-                onRequestDelete={requestDelete}
-                collapsible={false}
-                {...cardProps}
-              />
             )}
-          </div>
+          </ol>
+
+          {isLoading ? (
+            <Loading />
+          ) : isError || !offer ? (
+            <div className="text-center text-muted mt-4">{t('offerNotFound')}</div>
+          ) : (
+            <OfferCard
+              offer={offer}
+              isAdmin={isAdmin}
+              onRequestEdit={requestEdit}
+              onRequestDelete={requestDelete}
+              collapsible={false}
+              clickable={false}
+              {...cardProps}
+            />
+          )}
 
           {isAdmin && (
             <>
@@ -74,18 +72,8 @@ const Offer = () => {
             </>
           )}
         </div>
-        <div className="col-12 col-md-12 col-lg-3" style={{ marginTop: '48px', padding: '20px' }}>
-          <div className="card d-none d-lg-block text-center">
-            <div className="card-body" style={{ paddingBottom: '20px' }}>
-              <HomePageCompareForm />
-            </div>
-          </div>
-          <div className="d-none d-lg-block">
-            <PopularComparisons />
-          </div>
-        </div>
       </div>
-    </section>
+    </div>
   );
 };
 

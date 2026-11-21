@@ -11,6 +11,11 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.1.0",
+    "@tiptap/extension-placeholder": "2.27.3",
+    "@tiptap/extension-underline": "2.27.3",
+    "@tiptap/pm": "2.27.3",
+    "@tiptap/react": "2.27.3",
+    "@tiptap/starter-kit": "2.27.3",
     "formik": "^2.4.5",
     "i18next": "^25.8.10",
     "jwt-decode": "^4.0.0",

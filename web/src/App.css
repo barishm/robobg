@@ -11,3 +11,30 @@
 .App main {
   flex-grow: 1;
 }
+
+/* Offer cards in the list open the offer's page when clicked */
+.offer-card-clickable {
+  cursor: pointer;
+}
+
+/* Offer rich text editor (features/home-page-feature/RichTextEditor.jsx) */
+.offer-rich-editor {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.offer-rich-editor:focus {
+  outline: none;
+}
+
+.offer-rich-editor p {
+  margin: 0;
+}
+
+.offer-rich-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--bs-secondary-color);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

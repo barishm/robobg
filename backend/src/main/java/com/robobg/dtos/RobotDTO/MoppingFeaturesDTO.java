@@ -16,4 +16,5 @@ public class MoppingFeaturesDTO {
     private String washingMopsWithWarmWater;
     private String dryingTheMops;
     private String automaticDetergentDosing;
+    private String rollerMop;
 }

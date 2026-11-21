@@ -37,9 +37,12 @@ const RobotForm = ({ action = 'C', id = null }) => {
     };
 
     const handleLinkChange = (index, field, value) => {
-        const updatedLinks = [...purchaseLinks];
-        updatedLinks[index][field] = value;
-        setPurchaseLinks(updatedLinks);
+        // Copy the edited link instead of changing it in place: links loaded
+        // from the API are frozen RTK Query cache objects, so assigning to
+        // them fails and the input can't be edited.
+        setPurchaseLinks(prev =>
+            prev.map((link, i) => (i === index ? { ...link, [field]: value } : link))
+        );
     };
 
     useEffect(() => {
@@ -106,6 +109,7 @@ const RobotForm = ({ action = 'C', id = null }) => {
                     washingMopsWithWarmWater: robotData?.moppingFeatures?.washingMopsWithWarmWater ?? "null",
                     dryingTheMops: robotData?.moppingFeatures?.dryingTheMops ?? "null",
                     automaticDetergentDosing: robotData?.moppingFeatures?.automaticDetergentDosing ?? "null",
+                    rollerMop: robotData?.moppingFeatures?.rollerMop ?? "null",
                 },
                 battery: {
                     batteryCapacity: robotData?.battery?.batteryCapacity || "",
@@ -188,7 +192,8 @@ const RobotForm = ({ action = 'C', id = null }) => {
                 spinningMops: "null",
                 washingMopsWithWarmWater: "null",
                 dryingTheMops: "null",
-                automaticDetergentDosing: "null"
+                automaticDetergentDosing: "null",
+                rollerMop: "null"
             },
             battery: {
                 batteryCapacity: "",
@@ -546,6 +551,14 @@ const RobotForm = ({ action = 'C', id = null }) => {
                                     <div className="mb-3">
                                         <label htmlFor="exampleFormControlInput1" className="form-label">Automatic Detergent Dosing</label>
                                         <select className="form-control form-control-sm" name="moppingFeatures.automaticDetergentDosing" onChange={formik.handleChange} value={formik.values.moppingFeatures?.automaticDetergentDosing ?? "null"}>
+                                            <option value="null">N/A</option>
+                                            <option value="Y">YES</option>
+                                            <option value="N">NO</option>
+                                        </select>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label htmlFor="rollerMopInput" className="form-label">Roller Mop</label>
+                                        <select id="rollerMopInput" className="form-control form-control-sm" name="moppingFeatures.rollerMop" onChange={formik.handleChange} value={formik.values.moppingFeatures?.rollerMop ?? "null"}>
                                             <option value="null">N/A</option>
                                             <option value="Y">YES</option>
                                             <option value="N">NO</option>

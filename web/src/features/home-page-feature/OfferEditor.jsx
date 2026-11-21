@@ -1,155 +1,30 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { composeOfferText, splitOfferText, stripFormatting } from './offerTextMarkup';
+import { lazy, Suspense, useState } from 'react';
+import { composeOfferText, splitOfferText } from './offerTextMarkup';
 import { OfferPreview } from './OfferCard';
 import { readLinkImage } from './offerUtils';
 
 // The create/edit UI (composer, modals, toolbar) is English only, whatever the
 // site language is.
 
-const SIZE_OPPOSITE = { big: 'small', small: 'big' };
+// The rich text editor (and its library) only loads when an admin opens the
+// composer, so visitors don't download it.
+const RichTextEditor = lazy(() => import('./RichTextEditor'));
 
-const TOOLBAR_BUTTONS = [
-  { tag: 'b', label: 'Bold (Ctrl+B)', icon: 'fa-bold' },
-  { tag: 'i', label: 'Italic (Ctrl+I)', icon: 'fa-italic' },
-  { tag: 'u', label: 'Underline (Ctrl+U)', icon: 'fa-underline' },
-  { tag: 's', label: 'Strikethrough', icon: 'fa-strikethrough' },
-  { tag: 'big', label: 'Bigger text', text: 'A+' },
-  { tag: 'small', label: 'Smaller text', text: 'A−' },
-];
-
-const SHORTCUTS = { b: 'b', i: 'i', u: 'u' };
-
-// Adds the markup tag around the selected text. Clicking Bold/Italic/... again
-// on already wrapped text removes the tag. Bigger/Smaller nest, so each click
-// grows/shrinks the text one more step, and Smaller on [big] text undoes
-// one Bigger step (and the other way round).
-const toggleTag = (value, start, end, tag) => {
-  const before = value.slice(0, start);
-  const selected = value.slice(start, end);
-  const after = value.slice(end);
-
-  const unwrapAround = (t) => {
-    const open = `[${t}]`;
-    const close = `[/${t}]`;
-    if (before.endsWith(open) && after.startsWith(close)) {
-      return {
-        value: before.slice(0, -open.length) + selected + after.slice(close.length),
-        start: start - open.length,
-        end: end - open.length,
-      };
-    }
-    if (selected.length >= open.length + close.length && selected.startsWith(open) && selected.endsWith(close)) {
-      const inner = selected.slice(open.length, selected.length - close.length);
-      return { value: before + inner + after, start, end: start + inner.length };
-    }
-    return null;
-  };
-
-  const opposite = SIZE_OPPOSITE[tag];
-  const unwrapped = opposite ? unwrapAround(opposite) : unwrapAround(tag);
-  if (unwrapped) return unwrapped;
-
-  const open = `[${tag}]`;
-  return {
-    value: `${before}${open}${selected}[/${tag}]${after}`,
-    start: start + open.length,
-    end: start + open.length + selected.length,
-  };
-};
-
-// Textarea with a toolbar whose buttons add formatting markup to the selected
-// text (or insert an empty pair of tags at the cursor when nothing is selected).
-export const FormattedTextarea = ({ value, onChange, rows, placeholder, className = '' }) => {
-  const ref = useRef(null);
-  const pendingSelection = useRef(null);
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el || !pendingSelection.current) return;
-    const [start, end] = pendingSelection.current;
-    pendingSelection.current = null;
-    el.focus();
-    el.setSelectionRange(start, end);
-  }, [value]);
-
-  const update = (result) => {
-    pendingSelection.current = [result.start, result.end];
-    onChange(result.value);
-  };
-
-  const applyTag = (tag) => {
-    const el = ref.current;
-    if (!el) return;
-    update(toggleTag(value, el.selectionStart, el.selectionEnd, tag));
-  };
-
-  const clearFormatting = () => {
-    const el = ref.current;
-    if (!el) return;
-    const { selectionStart: start, selectionEnd: end } = el;
-    // No selection: clear the whole text
-    const [from, to] = start === end ? [0, value.length] : [start, end];
-    const cleaned = stripFormatting(value.slice(from, to));
-    update({
-      value: value.slice(0, from) + cleaned + value.slice(to),
-      start: from,
-      end: from + cleaned.length,
-    });
-  };
-
-  const handleKeyDown = (e) => {
-    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
-    const tag = SHORTCUTS[e.key.toLowerCase()];
-    if (!tag) return;
-    e.preventDefault();
-    applyTag(tag);
-  };
-
-  // onMouseDown + preventDefault keeps the focus (and selection) in the textarea
-  const keepSelection = (e) => e.preventDefault();
-
-  return (
-    <div className={`border rounded ${className}`}>
-      <div className="d-flex flex-wrap gap-1 p-1 border-bottom bg-body-tertiary rounded-top" role="toolbar" aria-label="Text formatting">
-        {TOOLBAR_BUTTONS.map(({ tag, label, icon, text }) => (
-          <button
-            key={tag}
-            type="button"
-            className="btn btn-light btn-sm fw-semibold"
-            style={{ minWidth: '32px' }}
-            title={label}
-            aria-label={label}
-            onMouseDown={keepSelection}
-            onClick={() => applyTag(tag)}
-          >
-            {icon ? <i className={`fa-solid ${icon}`}></i> : text}
-          </button>
-        ))}
-        <span className="vr mx-1"></span>
-        <button
-          type="button"
-          className="btn btn-light btn-sm"
-          style={{ minWidth: '32px' }}
-          title="Clear formatting"
-          aria-label="Clear formatting"
-          onMouseDown={keepSelection}
-          onClick={clearFormatting}
-        >
-          <i className="fa-solid fa-text-slash"></i>
-        </button>
-      </div>
-      <textarea
-        ref={ref}
-        className="form-control border-0 rounded-top-0 shadow-none"
-        rows={rows}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-      />
-    </div>
-  );
-};
+// Offer text field: shows formatting (bold, sizes...) directly instead of
+// tags, with a formatting toolbar. value/onChange use the offer markup.
+export const OfferTextEditor = ({ value, onChange, rows = 4, placeholder, className = '' }) => (
+  <div className={`border rounded ${className}`}>
+    <Suspense
+      fallback={
+        <div className="text-muted small p-2" style={{ minHeight: `${rows * 1.5 + 3}rem` }}>
+          Loading editor…
+        </div>
+      }
+    >
+      <RichTextEditor value={value} onChange={onChange} rows={rows} placeholder={placeholder} />
+    </Suspense>
+  </div>
+);
 
 // URL, title and image inputs, shared by the link modal and
 // the edit offer modal. idPrefix keeps input ids unique between the two.
@@ -289,7 +164,7 @@ const EditOfferForm = ({ offer, onSave, cardProps }) => {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
-        <FormattedTextarea className="mb-4" rows="6" placeholder="Write an offer..." value={text} onChange={setText} />
+        <OfferTextEditor className="mb-4" rows={6} placeholder="Write an offer..." value={text} onChange={setText} />
         <h6 className="mb-3">Link</h6>
         <LinkFields draft={linkDraft} setDraft={setLinkDraft} idPrefix="editOfferLink" />
         {offer && (

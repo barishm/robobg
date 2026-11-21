@@ -183,6 +183,19 @@ const Header = ({ setDashboardsActiveComponent }) => {
                 aria-current="page"
                 style={{ cursor: 'pointer' }}
                 onClick={() => {
+                  navigate('/offers');
+                  closeCollapse();
+                }}
+              >
+                {lang === 'en' ? 'Offers' : 'Оферти'}
+              </a>
+            </li>
+            <li className="nav-item">
+              <a
+                className="nav-link active text-white"
+                aria-current="page"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
                   navigate('/robots');
                   closeCollapse();
                 }}

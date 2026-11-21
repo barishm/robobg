@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ActionsMenu from 'src/components/ActionsMenu';
 import { renderOfferText } from './offerTextMarkup';
 import { formatRelativeTime, hostnameOf, normalizeUrl } from './offerUtils';
 
@@ -35,7 +36,7 @@ const LinkPreview = ({ link }) => {
   const Wrapper = link.url ? 'a' : 'div';
   const linkProps = link.url ? { href: normalizeUrl(link.url), target: '_blank', rel: 'noreferrer' } : {};
   return (
-    <Wrapper {...linkProps} className="d-block text-reset text-decoration-none border-top">
+    <Wrapper {...linkProps} className="d-block text-reset text-decoration-none border-top rounded-bottom overflow-hidden">
       {link.image && (
         <img
           src={link.image}
@@ -126,34 +127,51 @@ export const OfferCard = ({
   onRequestEdit,
   onRequestDelete,
   collapsible = true,
+  clickable = true,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const time = offer.createdAt ? formatRelativeTime(offer.createdAt, lang) : '';
   const renderedText = renderOfferText(offer.text, robots, consumables);
+  const offerUrl = offer.id ? `/offers/${offer.id}` : null;
+  const isClickable = clickable && Boolean(offerUrl);
+
+  // Clicking anywhere on the card opens the offer's page, except on things
+  // that do something themselves (links, hashtags, buttons, Show more, the
+  // link preview) or when the click ends a text selection. Ctrl/Cmd/middle
+  // click opens it in a new tab, like a normal link.
+  const handleCardClick = (e) => {
+    if (!isClickable) return;
+    if (e.target.closest('a, button, input, textarea, select, label, [role="button"], .dropdown-menu')) return;
+    if (window.getSelection()?.toString()) return;
+    if (e.ctrlKey || e.metaKey || e.button === 1) {
+      window.open(offerUrl, '_blank', 'noopener');
+    } else {
+      navigate(offerUrl);
+    }
+  };
 
   return (
-    <div className="card mb-3 position-relative overflow-hidden">
+    <div
+      className={`card mb-3 position-relative${isClickable ? ' offer-card-clickable' : ''}`}
+      onClick={handleCardClick}
+      onAuxClick={(e) => e.button === 1 && handleCardClick(e)}
+    >
       {isAdmin && onRequestDelete && (
-        <div className="position-absolute top-0 end-0 m-2" style={{ zIndex: 1 }}>
-          <button
-            type="button"
-            className="btn btn-sm btn-primary me-1"
-            data-bs-toggle="modal"
-            data-bs-target="#editOfferModal"
-            onClick={() => onRequestEdit(offer)}
-          >
-            {t('Edit')}
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-danger"
-            data-bs-toggle="modal"
-            data-bs-target="#deleteOfferModal"
-            onClick={() => onRequestDelete(offer.id)}
-          >
-            {t('Delete')}
-          </button>
-        </div>
+        <ActionsMenu
+          className="position-absolute top-0 end-0 m-2"
+          style={{ zIndex: 2 }}
+          items={[
+            { label: t('Edit'), icon: 'fa-pen', modalTarget: '#editOfferModal', onClick: () => onRequestEdit(offer) },
+            {
+              label: t('Delete'),
+              icon: 'fa-trash',
+              modalTarget: '#deleteOfferModal',
+              danger: true,
+              onClick: () => onRequestDelete(offer.id),
+            },
+          ]}
+        />
       )}
       <div className="card-body">
         <div className="d-flex align-items-center gap-2 mb-2">
@@ -184,10 +202,17 @@ export const OfferCard = ({
 };
 
 // The whole offer as it will look once posted: author, title, text and link.
-// Labels are English only, like the rest of the create/edit UI.
-export const OfferPreview = ({ offer, lang, robots, consumables }) => (
+// The label defaults to English, like the rest of the create/edit modals.
+export const OfferPreview = ({ offer, lang, robots, consumables, label = 'Preview' }) => (
   <>
-    <div className="text-muted small text-uppercase mb-2">Preview</div>
-    <OfferCard offer={offer} lang={lang} robots={robots} consumables={consumables} isAdmin={false} />
+    <div className="text-muted small text-uppercase mb-2">{label}</div>
+    <OfferCard
+      offer={offer}
+      lang={lang}
+      robots={robots}
+      consumables={consumables}
+      isAdmin={false}
+      clickable={false}
+    />
   </>
 );

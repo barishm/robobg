@@ -197,6 +197,7 @@ public class RobotServiceImpl implements RobotService {
         e.setWashingMopsWithWarmWater(dto.getWashingMopsWithWarmWater());
         e.setDryingTheMops(dto.getDryingTheMops());
         e.setAutomaticDetergentDosing(dto.getAutomaticDetergentDosing());
+        e.setRollerMop(dto.getRollerMop());
         return e;
     }
     private Battery mapBattery(BatteryDTO dto) {
@@ -300,6 +301,7 @@ public class RobotServiceImpl implements RobotService {
         entity.setWashingMopsWithWarmWater(dto.getWashingMopsWithWarmWater());
         entity.setDryingTheMops(dto.getDryingTheMops());
         entity.setAutomaticDetergentDosing(dto.getAutomaticDetergentDosing());
+        entity.setRollerMop(dto.getRollerMop());
     }
     private void updateBattery(BatteryDTO dto, Robot robot) {
         if (dto == null) {

@@ -99,6 +99,7 @@ const RobotDetails = (props) => {
               {renderBooleanStringTableRow("washingMopsWithWarmWater", robot.moppingFeatures.washingMopsWithWarmWater)}
               {renderBooleanStringTableRow("dryingTheMops", robot.moppingFeatures.dryingTheMops)}
               {renderBooleanStringTableRow("automaticDetergentDosing", robot.moppingFeatures.automaticDetergentDosing)}
+              {renderBooleanStringTableRow("rollerMop", robot.moppingFeatures.rollerMop)}
             </tbody>
           </table>
           <table className="table table-bordered" style={{ tableLayout: "fixed", width: "100%" }}>

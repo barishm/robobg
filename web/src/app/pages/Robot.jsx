@@ -20,6 +20,7 @@ import { REMOVE_BORDER_AT } from "src/constants";
 import DeletePopup from "src/features/cms-feature/components/DeletePopup";
 import RobotForm from "src/features/cms-feature/components/RobotForm";
 import UploadRobotImage from "src/features/cms-feature/components/UploadRobotImage";
+import ActionsMenu from "src/components/ActionsMenu";
 
 const Robot = () => {
   const { t } = useTranslation()
@@ -115,45 +116,14 @@ const Robot = () => {
                 >
                   {/* ADMIN BUTTONS */}
                   {(role === "ADMIN" || role === "MODERATOR") && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "10px",
-                        right: "10px",
-                        zIndex: 10,
-                      }}
-                    >
-                      <button
-                        className="btn btn-light btn-sm me-1"
-                        value={data.id}
-                        onClick={(e) => setRobotId(e.currentTarget.value)}
-                        data-bs-toggle="modal"
-                        data-bs-target="#uploadImage"
-                      >
-                        <img
-                          src="/images/image.png"
-                          className="img-fluid"
-                          style={{ maxHeight: "1.3rem" }}
-                          alt="Upload"
-                        />
-                      </button>
-
-                      <button
-                        className="btn btn-sm btn-primary me-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#update"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        className="btn btn-sm btn-danger"
-                        data-bs-toggle="modal"
-                        data-bs-target="#DeleteRobotModal"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    <ActionsMenu
+                      style={{ position: "absolute", top: "10px", right: "10px", zIndex: 10 }}
+                      items={[
+                        { label: t("changeImage"), icon: "fa-image", modalTarget: "#uploadImage" },
+                        { label: t("Edit"), icon: "fa-pen", modalTarget: "#update" },
+                        { label: t("Delete"), icon: "fa-trash", modalTarget: "#DeleteRobotModal", danger: true },
+                      ]}
+                    />
                   )}
 
                   {/* CONTENT */}

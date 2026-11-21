@@ -11,6 +11,7 @@ import {
   useDeleteConsumableMutation,
 } from 'src/app/services/consumableApiSlice';
 import DeletePopup from "src/features/cms-feature/components/DeletePopup";
+import ActionsMenu from "src/components/ActionsMenu";
 import ConsumableForm from "src/features/cms-feature/components/ConsumableForm";
 import UploadConsumableImages from "src/features/cms-feature/components/UploadConsumableImages";
 import { REMOVE_BORDER_AT } from "src/constants";
@@ -94,60 +95,30 @@ const Consumable = () => {
               >
                 {/* ADMIN BUTTONS */}
                 {(role === "ADMIN" || role === "MODERATOR") && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "10px",
-                      right: "10px",
-                      zIndex: 10,
-                    }}
-                  >
-                    <button
-                      className="btn btn-light btn-sm me-1"
-                      value={data.id}
-                      onClick={(e) =>
-                        setConsumableId(e.currentTarget.value)
-                      }
-                      data-bs-toggle="modal"
-                      data-bs-target="#uploadConsumableImage"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <img
-                        src="/images/image-gallery.png"
-                        className="img-fluid"
-                        style={{ maxHeight: "1.3rem" }}
-                        alt="Upload"
-                      />
-                    </button>
-
-                    <button
-                      className="btn btn-sm btn-primary me-1"
-                      value={data.id}
-                      onClick={() => {
-                        setSelectedConsumableToUpdate(data);
-                      }}
-                      data-bs-toggle="modal"
-                      data-bs-target="#update"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      className="btn btn-sm btn-danger"
-                      value={data.id}
-                      onClick={(e) => {
-                        setConsumableId(e.target.value);
-                      }}
-                      data-bs-toggle="modal"
-                      data-bs-target="#DeleteConsumableModal"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  <ActionsMenu
+                    style={{ position: "absolute", top: "10px", right: "10px", zIndex: 10 }}
+                    items={[
+                      {
+                        label: t("changeImages"),
+                        icon: "fa-images",
+                        modalTarget: "#uploadConsumableImage",
+                        onClick: () => setConsumableId(String(data.id)),
+                      },
+                      {
+                        label: t("Edit"),
+                        icon: "fa-pen",
+                        modalTarget: "#update",
+                        onClick: () => setSelectedConsumableToUpdate(data),
+                      },
+                      {
+                        label: t("Delete"),
+                        icon: "fa-trash",
+                        modalTarget: "#DeleteConsumableModal",
+                        danger: true,
+                        onClick: () => setConsumableId(String(data.id)),
+                      },
+                    ]}
+                  />
                 )}
 
                 {/* MAIN CONTENT */}

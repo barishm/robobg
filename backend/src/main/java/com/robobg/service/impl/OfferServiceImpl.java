@@ -1,16 +1,23 @@
 package com.robobg.service.impl;
 
 import com.robobg.dtos.OfferDTO.OfferAuthorDTO;
+import com.robobg.dtos.OfferDTO.OfferCategoryDTO;
 import com.robobg.dtos.OfferDTO.OfferDTO;
 import com.robobg.dtos.OfferDTO.OfferLinkDTO;
 import com.robobg.dtos.OfferDTO.OfferPageDTO;
 import com.robobg.entity.Offer;
+import com.robobg.entity.OfferCategory;
 import com.robobg.entity.User;
 import com.robobg.exceptions.EntityNotFoundException;
+import com.robobg.repository.OfferCategoryRepository;
 import com.robobg.repository.OfferRepository;
 import com.robobg.service.OfferService;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -20,6 +27,14 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class OfferServiceImpl implements OfferService {
@@ -33,11 +48,15 @@ public class OfferServiceImpl implements OfferService {
     private String domain;
     @Value("${web.protocol}")
     private String webProtocol;
+    private static final Logger logger = LoggerFactory.getLogger(OfferServiceImpl.class);
+
     private final OfferRepository offerRepository;
+    private final OfferCategoryRepository offerCategoryRepository;
     private final ImageService imageService;
 
-    public OfferServiceImpl(OfferRepository offerRepository, ImageService imageService) {
+    public OfferServiceImpl(OfferRepository offerRepository, OfferCategoryRepository offerCategoryRepository, ImageService imageService) {
         this.offerRepository = offerRepository;
+        this.offerCategoryRepository = offerCategoryRepository;
         this.imageService = imageService;
     }
 
@@ -78,12 +97,24 @@ public class OfferServiceImpl implements OfferService {
     }
 
     @Override
-    public OfferPageDTO getOffers(int page, int size) {
+    public OfferPageDTO getOffers(int page, int size, Collection<String> categories) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
         // id as a tie-breaker keeps the order stable between pages
         Sort sort = Sort.by(Sort.Order.desc("createTime"), Sort.Order.desc("id"));
-        Page<Offer> result = offerRepository.findAll(PageRequest.of(safePage, safeSize, sort));
+        PageRequest pageRequest = PageRequest.of(safePage, safeSize, sort);
+
+        Set<String> normalizedCategories = categories == null ? Set.of() : categories.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .map(name -> name.startsWith("#") ? name.substring(1) : name)
+                .filter(name -> !name.isEmpty())
+                .map(OfferHashtags::normalize)
+                .collect(Collectors.toSet());
+
+        Page<Offer> result = normalizedCategories.isEmpty()
+                ? offerRepository.findAll(pageRequest)
+                : offerRepository.findByAnyCategory(normalizedCategories, pageRequest);
         return new OfferPageDTO(
                 result.getContent().stream().map(this::toDTO).toList(),
                 result.getNumber(),
@@ -92,6 +123,48 @@ public class OfferServiceImpl implements OfferService {
                 result.getTotalPages(),
                 result.isLast()
         );
+    }
+
+    @Override
+    public List<OfferCategoryDTO> getCategories() {
+        return offerCategoryRepository.findAllWithOfferCounts();
+    }
+
+    // Sets the offer's categories to the hashtags in its text, reusing
+    // existing categories (case-insensitive) and creating the new ones.
+    private void syncCategories(Offer offer) {
+        Map<String, String> tags = OfferHashtags.extract(offer.getText());
+        Map<String, OfferCategory> existing = tags.isEmpty() ? Map.of() :
+                offerCategoryRepository.findByNormalizedNameIn(tags.keySet()).stream()
+                        .collect(Collectors.toMap(OfferCategory::getNormalizedName, Function.identity()));
+
+        Set<OfferCategory> categories = new HashSet<>();
+        tags.forEach((normalized, name) -> categories.add(
+                existing.containsKey(normalized)
+                        ? existing.get(normalized)
+                        : offerCategoryRepository.save(new OfferCategory(name, normalized))));
+
+        offer.getCategories().clear();
+        offer.getCategories().addAll(categories);
+    }
+
+    // Offers saved before categories existed get theirs from their text on
+    // startup. Cheap when everything is already in sync.
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void syncAllCategories() {
+        List<Offer> offers = offerRepository.findAll();
+        for (Offer offer : offers) {
+            Set<String> before = offer.getCategories().stream()
+                    .map(OfferCategory::getNormalizedName)
+                    .collect(Collectors.toSet());
+            if (!before.equals(OfferHashtags.extract(offer.getText()).keySet())) {
+                syncCategories(offer);
+                offerRepository.save(offer);
+            }
+        }
+        int removed = offerCategoryRepository.deleteUnused();
+        logger.info("Offer categories synced for {} offers ({} unused removed)", offers.size(), removed);
     }
 
     @Override
@@ -135,6 +208,7 @@ public class OfferServiceImpl implements OfferService {
         offer.setLinkTitle(linkTitle);
         offer.setCreateTime(OffsetDateTime.now(ZoneOffset.UTC).toLocalDateTime());
         offer.setAuthor(author);
+        syncCategories(offer);
         offerRepository.save(offer);
 
         // Saved first so the image file name can include the offer id
@@ -174,7 +248,9 @@ public class OfferServiceImpl implements OfferService {
         offer.setLinkUrl(linkUrl);
         offer.setLinkTitle(linkTitle);
         offer.setLinkImage(newImage);
+        syncCategories(offer);
         offerRepository.save(offer);
+        offerCategoryRepository.deleteUnused();
 
         if (oldImage != null && !oldImage.equals(newImage)) {
             imageService.deleteImage(oldImage);
@@ -190,6 +266,7 @@ public class OfferServiceImpl implements OfferService {
                 .orElseThrow(() -> new EntityNotFoundException("Offer with ID " + id + " not found."));
 
         offerRepository.delete(offer);
+        offerCategoryRepository.deleteUnused();
         imageService.deleteImage(offer.getLinkImage());
     }
 }

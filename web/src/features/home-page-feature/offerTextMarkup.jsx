@@ -1,7 +1,35 @@
 import { Link } from 'react-router-dom';
 import { NO_IMAGE } from 'src/constants';
+import { categoryColor } from './categoryColors';
+import { parseFormatting, stripFormatting } from './formatMarkup';
+
+export { stripFormatting };
 
 const URL_REGEX = /(https?:\/\/[^\s<>()[\]]+|www\.[^\s<>()[\]]+)/gi;
+
+// Hashtags like #Dog or #Почистване are the offer's categories and link to
+// the Offers page filtered by them. Keep in sync with OfferHashtags.java:
+// "#" must not follow a letter, digit, "_", "/", "&" or "#" (so URL
+// fragments aren't hashtags) and the tag needs at least one letter.
+const HASHTAG_REGEX = /(?<![\p{L}\p{N}_/&#])#([\p{L}\p{N}_]*\p{L}[\p{L}\p{N}_]*)/gu;
+const HASHTAG_MAX_LENGTH = 100;
+
+export const offersCategoryUrl = (category) => `/offers?category=${encodeURIComponent(category)}`;
+
+const findHashtagMatches = (text, taken) => {
+  const matches = [];
+  HASHTAG_REGEX.lastIndex = 0;
+  let match;
+  while ((match = HASHTAG_REGEX.exec(text))) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (match[1].length > HASHTAG_MAX_LENGTH) continue;
+    if (taken.slice(start, end).some(Boolean)) continue;
+    for (let i = start; i < end; i++) taken[i] = true;
+    matches.push({ start, end, type: 'hashtag', label: match[0], category: match[1] });
+  }
+  return matches;
+};
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -81,18 +109,32 @@ export const composeOfferText = (title, body) => {
 // Inverse of composeOfferText, for editing a saved offer.
 export const splitOfferText = (text) => {
   if (!text) return { title: '', body: '' };
-  const match = /^# (.*)(?:\n|$)/.exec(text);
+  // \r?\n: offers saved from Windows browsers can have \r\n line endings
+  const match = /^# ([^\r\n]*)(?:\r?\n|$)/.exec(text);
   if (!match) return { title: '', body: text };
   return { title: match[1], body: text.slice(match[0].length) };
+};
+
+// Short plain-text name of an offer, e.g. for the breadcrumb: its title, else
+// its link title, else its first line of text.
+export const offerDisplayTitle = (offer) => {
+  if (!offer) return '';
+  const { title, body } = splitOfferText(offer.text);
+  const clean = (value) =>
+    stripFormatting(value || '')
+      .replace(/\[([^\]\n]+)\]\([^()\s]+\)/g, '$1')
+      .trim();
+  const firstLine = clean(body)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+  return clean(title) || clean(offer.link?.title) || firstLine || '';
 };
 
 // Text formatting tags added by the composer's toolbar, BBCode style:
 // [b]bold[/b], [i]italic[/i], [u]underline[/u], [s]strikethrough[/s],
 // [big]bigger[/big] and [small]smaller[/small]. Size tags are relative, so
 // nesting them (e.g. [big][big]..[/big][/big]) keeps growing/shrinking.
-export const FORMAT_TAGS = ['b', 'i', 'u', 's', 'big', 'small'];
-const FORMAT_TAG_REGEX = /\[(\/?)(b|i|u|s|big|small)\]/g;
-
 const FORMAT_STYLES = {
   b: { fontWeight: 700 },
   i: { fontStyle: 'italic' },
@@ -100,56 +142,6 @@ const FORMAT_STYLES = {
   s: { textDecoration: 'line-through' },
   big: { fontSize: '1.25em' },
   small: { fontSize: '0.85em' },
-};
-
-export const stripFormatting = (text) => (text ? text.replace(FORMAT_TAG_REGEX, '') : '');
-
-// Parses the format tags into a tree. A tag without its matching pair is kept
-// as plain text, so a stray "[b]" never swallows the rest of the offer.
-const parseFormatting = (text) => {
-  const root = { tag: null, children: [] };
-  const stack = [root];
-  let cursor = 0;
-  FORMAT_TAG_REGEX.lastIndex = 0;
-  let match;
-
-  const pushText = (value) => {
-    if (!value) return;
-    const { children } = stack[stack.length - 1];
-    if (typeof children[children.length - 1] === 'string') {
-      children[children.length - 1] += value;
-    } else {
-      children.push(value);
-    }
-  };
-
-  while ((match = FORMAT_TAG_REGEX.exec(text))) {
-    pushText(text.slice(cursor, match.index));
-    cursor = match.index + match[0].length;
-    const [raw, closing, tag] = match;
-    const top = stack[stack.length - 1];
-
-    if (!closing) {
-      const node = { tag, raw, children: [] };
-      top.children.push(node);
-      stack.push(node);
-    } else if (top.tag === tag) {
-      stack.pop();
-    } else {
-      pushText(raw);
-    }
-  }
-  pushText(text.slice(cursor));
-
-  // Unclosed tags: put the opening tag back as text and keep their content
-  while (stack.length > 1) {
-    const node = stack.pop();
-    const parent = stack[stack.length - 1];
-    const index = parent.children.indexOf(node);
-    parent.children.splice(index, 1, node.raw, ...node.children);
-  }
-
-  return root.children;
 };
 
 const renderFormatted = (text, robots, consumables, keyPrefix) => {
@@ -219,16 +211,18 @@ const renderInline = (text, robots, consumables, keyPrefix) => {
     for (let i = start; i < end; i++) taken[i] = true;
   });
 
+  // URLs before hashtags, so a URL's "#fragment" stays part of the URL, and
+  // hashtags before robot/consumable names, so "#Roborock" stays a hashtag.
+  const urlMatches = findUrlMatches(text, taken);
+  const hashtagMatches = findHashtagMatches(text, taken);
+
   const entityMatches = findEntityMatches(text, entities).filter(
     (match) => !taken.slice(match.start, match.end).some(Boolean)
   );
-  entityMatches.forEach(({ start, end }) => {
-    for (let i = start; i < end; i++) taken[i] = true;
-  });
 
-  const urlMatches = findUrlMatches(text, taken);
-
-  const allMatches = [...linkMatches, ...entityMatches, ...urlMatches].sort((a, b) => a.start - b.start);
+  const allMatches = [...linkMatches, ...urlMatches, ...hashtagMatches, ...entityMatches].sort(
+    (a, b) => a.start - b.start
+  );
 
   const nodes = [];
   let cursor = 0;
@@ -250,6 +244,15 @@ const renderInline = (text, robots, consumables, keyPrefix) => {
         <a key={`${keyPrefix}url-${index}`} href={href} target="_blank" rel="noreferrer" className="text-info">
           {match.label}
         </a>
+      );
+    } else if (match.type === 'hashtag') {
+      nodes.push(
+        <Link key={`${keyPrefix}hashtag-${index}`} to={offersCategoryUrl(match.category)}
+          className="fw-semibold text-decoration-none"
+          style={{ color: categoryColor(match.category) }}
+        >
+          {match.label}
+        </Link>
       );
     } else {
       const to = match.type === 'robot' ? `/robots/${match.id}` : `/consumables/${match.id}`;

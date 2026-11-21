@@ -49,4 +49,8 @@ public class MoppingFeatures {
 
     @Column(name = "automatic_detergent_dosing")
     private String automaticDetergentDosing;
+
+    // "Y", "N" or null (unknown), like the other yes/no features
+    @Column(name = "roller_mop")
+    private String rollerMop;
 }

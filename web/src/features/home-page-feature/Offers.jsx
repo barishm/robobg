@@ -11,11 +11,14 @@ import Pagination from 'src/components/Pagination';
 import Loading from 'src/components/Loading';
 import { composeOfferText } from './offerTextMarkup';
 import { OfferCard, OfferPreview } from './OfferCard';
-import { DeleteOfferModal, EditOfferModal, FormattedTextarea, LinkModal } from './OfferEditor';
+import { DeleteOfferModal, EditOfferModal, OfferTextEditor, LinkModal } from './OfferEditor';
 import useOfferActions from './useOfferActions';
 import { EMPTY_LINK, OFFERS_PER_PAGE, dataUrlToBlob, normalizeUrl, useRelativeTimeTick } from './offerUtils';
 
-const Offers = () => {
+// The offers feed with the admin composer and pagination. Used on the Home
+// page and, with categories and headerExtra (the Filters button), on the
+// Offers page.
+const Offers = ({ categories = [], headerExtra = null }) => {
   const { t } = useTranslation();
   const lang = useSelector((state) => state.language.lang);
   const { username, role, accessToken } = useSelector((state) => state.auth);
@@ -39,7 +42,11 @@ const Offers = () => {
 
   const { data: robots } = useGetAllRobotsQuery();
   const { data: consumables } = useGetAllConsumablesQuery();
-  const { data: offersPage, isLoading, isFetching } = useGetOffersQuery({ page, size: OFFERS_PER_PAGE });
+  const { data: offersPage, isLoading, isFetching } = useGetOffersQuery({
+    page,
+    size: OFFERS_PER_PAGE,
+    categories,
+  });
   const offers = offersPage?.content ?? [];
   const { data: currentUser } = useGetCurrentUserQuery(accessToken, { skip: !accessToken || !isAdmin });
   const [createOffer, { isLoading: isPosting }] = useCreateOfferMutation();
@@ -116,6 +123,7 @@ const Offers = () => {
       <h3 className="fw-bolder" style={{ textAlign: 'center' }}>
         {t('offers')}
       </h3>
+      {headerExtra}
 
       {isAdmin && (
         <form onSubmit={handleSubmit} className="mb-4 mt-4">
@@ -127,9 +135,9 @@ const Offers = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
-            <FormattedTextarea
+            <OfferTextEditor
               className="mb-3"
-              rows="4"
+              rows={4}
               placeholder="Write an offer..."
               value={text}
               onChange={setText}
@@ -166,15 +174,15 @@ const Offers = () => {
             </div>
           </div>
 
+          {canPost && (
+            <div className="mb-3">
+              <OfferPreview offer={previewOffer} label={t('preview')} {...cardProps} />
+            </div>
+          )}
+
           <button type="submit" className="btn btn-primary text-center" disabled={!canPost || isPosting}>
             Post
           </button>
-
-          {canPost && (
-            <div className="mt-4">
-              <OfferPreview offer={previewOffer} {...cardProps} />
-            </div>
-          )}
         </form>
       )}
 

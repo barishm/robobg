@@ -3,10 +3,18 @@ import { apiSlice } from "./apiSlice";
 export const offerApiSlice = apiSlice.injectEndpoints({
     endpoints: builder => ({
         getOffers: builder.query({
-            query: ({page = 0, size = 10} = {}) => ({
+            // categories: offers with any of these hashtags (without "#")
+            query: ({page = 0, size = 10, categories = []} = {}) => ({
                 url: `v1/offers`,
                 method: 'GET',
-                params: {page, size}
+                params: {page, size, category: categories.length ? categories : undefined}
+            }),
+            providesTags: ['Offer'],
+        }),
+        getOfferCategories: builder.query({
+            query: () => ({
+                url: `v1/offers/categories`,
+                method: 'GET'
             }),
             providesTags: ['Offer'],
         }),
@@ -58,6 +66,7 @@ export const offerApiSlice = apiSlice.injectEndpoints({
 export const {
     useGetOffersQuery,
     useGetOfferByIdQuery,
+    useGetOfferCategoriesQuery,
     useCreateOfferMutation,
     useUpdateOfferMutation,
     useDeleteOfferMutation
