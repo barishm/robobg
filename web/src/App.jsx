@@ -17,6 +17,7 @@ import useAuth from 'src/hooks/useAuth'
 import { useState } from 'react'
 import Consumables from 'src/app/pages/Consumables'
 import Consumable from 'src/app/pages/Consumable'
+import Offer from 'src/app/pages/Offer'
 import { PhotoProvider } from 'react-photo-view';
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from 'react-toastify';
@@ -44,6 +45,7 @@ function App() {
             <Route path='/consumables' element={<Consumables />} />
             <Route path='/robots/:id' element={<Robot />} />
             <Route path='/consumables/:id' element={<Consumable />} />
+            <Route path='/offers/:id' element={<Offer />} />
             <Route path='/contact' element={<Contact />} />
             <Route path='/profile' element={<Profile />} />
             <Route path='/login' element={<Login />} />

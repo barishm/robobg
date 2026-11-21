@@ -47,7 +47,7 @@ const Consumables = () => {
     page,
     setPage,
     paginatedData: paginatedEntities,
-    isLast
+    totalPages
   } = usePagination(filteredConsumables, DEFAULT_ENTITIES_PER_PAGE);
 
   const details = (id) => navigate('/consumables/' + id);
@@ -172,9 +172,7 @@ const Consumables = () => {
     })}
   </div>
 ) : null}
-          {filteredConsumables.length > DEFAULT_ENTITIES_PER_PAGE && (
-            <Pagination Page={page} setPage={setPage} isLast={isLast} />
-          )}
+          <Pagination Page={page} setPage={setPage} totalPages={totalPages} />
         </div>
         <div className="col-12 col-md-12 col-lg-3" style={{ marginTop: "48px", padding: "20px" }}>
           <ConsumableFilters onFilterChange={handleFilterChange} selectedModels={filterByModels} />

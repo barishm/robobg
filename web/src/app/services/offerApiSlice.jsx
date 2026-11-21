@@ -2,9 +2,17 @@ import { apiSlice } from "./apiSlice";
 
 export const offerApiSlice = apiSlice.injectEndpoints({
     endpoints: builder => ({
-        getAllOffers: builder.query({
-            query: () => ({
+        getOffers: builder.query({
+            query: ({page = 0, size = 10} = {}) => ({
                 url: `v1/offers`,
+                method: 'GET',
+                params: {page, size}
+            }),
+            providesTags: ['Offer'],
+        }),
+        getOfferById: builder.query({
+            query: ({id}) => ({
+                url: `v1/offers/${id}`,
                 method: 'GET'
             }),
             providesTags: ['Offer'],
@@ -48,7 +56,8 @@ export const offerApiSlice = apiSlice.injectEndpoints({
 })
 
 export const {
-    useGetAllOffersQuery,
+    useGetOffersQuery,
+    useGetOfferByIdQuery,
     useCreateOfferMutation,
     useUpdateOfferMutation,
     useDeleteOfferMutation

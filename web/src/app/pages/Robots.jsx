@@ -69,7 +69,7 @@ const Robots = () => {
   }, [data]);
 
   const filteredRobots = useRobotFilters(data, filterOptions, isLoading);
-  const { page, setPage, paginatedData: paginatedRobots, isLast } = usePagination(filteredRobots, DEFAULT_ENTITIES_PER_PAGE);
+  const { page, setPage, paginatedData: paginatedRobots, totalPages } = usePagination(filteredRobots, DEFAULT_ENTITIES_PER_PAGE);
 
   const details = (id) => navigate('/robots/' + id);
 
@@ -173,9 +173,7 @@ const Robots = () => {
               ))}
             </div>
           )}
-          {filteredRobots.length >= DEFAULT_ENTITIES_PER_PAGE && (
-            <Pagination Page={page} setPage={setPage} isLast={isLast} />
-          )}
+          <Pagination Page={page} setPage={setPage} totalPages={totalPages} />
         </div>
 
         <div className="col-12 col-md-12 col-lg-3" style={{ marginTop: '48px', padding: '20px' }}>

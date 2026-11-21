@@ -3,6 +3,7 @@ package com.robobg.service.impl;
 import com.robobg.dtos.OfferDTO.OfferAuthorDTO;
 import com.robobg.dtos.OfferDTO.OfferDTO;
 import com.robobg.dtos.OfferDTO.OfferLinkDTO;
+import com.robobg.dtos.OfferDTO.OfferPageDTO;
 import com.robobg.entity.Offer;
 import com.robobg.entity.User;
 import com.robobg.exceptions.EntityNotFoundException;
@@ -10,13 +11,15 @@ import com.robobg.repository.OfferRepository;
 import com.robobg.service.OfferService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 
 @Service
 public class OfferServiceImpl implements OfferService {
@@ -24,6 +27,7 @@ public class OfferServiceImpl implements OfferService {
     private static final int MAX_TEXT_LENGTH = 10000;
     private static final int MAX_URL_LENGTH = 2048;
     private static final int MAX_TITLE_LENGTH = 255;
+    private static final int MAX_PAGE_SIZE = 50;
 
     @Value("${domain}")
     private String domain;
@@ -74,10 +78,27 @@ public class OfferServiceImpl implements OfferService {
     }
 
     @Override
-    public List<OfferDTO> getAllOffers() {
-        return offerRepository.findAllByOrderByCreateTimeDesc().stream()
+    public OfferPageDTO getOffers(int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
+        // id as a tie-breaker keeps the order stable between pages
+        Sort sort = Sort.by(Sort.Order.desc("createTime"), Sort.Order.desc("id"));
+        Page<Offer> result = offerRepository.findAll(PageRequest.of(safePage, safeSize, sort));
+        return new OfferPageDTO(
+                result.getContent().stream().map(this::toDTO).toList(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.isLast()
+        );
+    }
+
+    @Override
+    public OfferDTO getOfferById(Long id) throws EntityNotFoundException {
+        return offerRepository.findById(id)
                 .map(this::toDTO)
-                .toList();
+                .orElseThrow(() -> new EntityNotFoundException("Offer with ID " + id + " not found."));
     }
 
     private static void validate(String text, String linkUrl, String linkTitle, boolean hasImage) {

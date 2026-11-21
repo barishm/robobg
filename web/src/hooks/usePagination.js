@@ -13,8 +13,11 @@ const usePagination = (data = [], itemsPerPage = 12) => {
     return (page + 1) * itemsPerPage >= data.length;
   }, [page, itemsPerPage, data.length]);
 
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+
   return {
     page,
+    totalPages,
     setPage,
     paginatedData,
     isLast

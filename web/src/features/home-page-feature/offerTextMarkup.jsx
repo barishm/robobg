@@ -86,6 +86,88 @@ export const splitOfferText = (text) => {
   return { title: match[1], body: text.slice(match[0].length) };
 };
 
+// Text formatting tags added by the composer's toolbar, BBCode style:
+// [b]bold[/b], [i]italic[/i], [u]underline[/u], [s]strikethrough[/s],
+// [big]bigger[/big] and [small]smaller[/small]. Size tags are relative, so
+// nesting them (e.g. [big][big]..[/big][/big]) keeps growing/shrinking.
+export const FORMAT_TAGS = ['b', 'i', 'u', 's', 'big', 'small'];
+const FORMAT_TAG_REGEX = /\[(\/?)(b|i|u|s|big|small)\]/g;
+
+const FORMAT_STYLES = {
+  b: { fontWeight: 700 },
+  i: { fontStyle: 'italic' },
+  u: { textDecoration: 'underline' },
+  s: { textDecoration: 'line-through' },
+  big: { fontSize: '1.25em' },
+  small: { fontSize: '0.85em' },
+};
+
+export const stripFormatting = (text) => (text ? text.replace(FORMAT_TAG_REGEX, '') : '');
+
+// Parses the format tags into a tree. A tag without its matching pair is kept
+// as plain text, so a stray "[b]" never swallows the rest of the offer.
+const parseFormatting = (text) => {
+  const root = { tag: null, children: [] };
+  const stack = [root];
+  let cursor = 0;
+  FORMAT_TAG_REGEX.lastIndex = 0;
+  let match;
+
+  const pushText = (value) => {
+    if (!value) return;
+    const { children } = stack[stack.length - 1];
+    if (typeof children[children.length - 1] === 'string') {
+      children[children.length - 1] += value;
+    } else {
+      children.push(value);
+    }
+  };
+
+  while ((match = FORMAT_TAG_REGEX.exec(text))) {
+    pushText(text.slice(cursor, match.index));
+    cursor = match.index + match[0].length;
+    const [raw, closing, tag] = match;
+    const top = stack[stack.length - 1];
+
+    if (!closing) {
+      const node = { tag, raw, children: [] };
+      top.children.push(node);
+      stack.push(node);
+    } else if (top.tag === tag) {
+      stack.pop();
+    } else {
+      pushText(raw);
+    }
+  }
+  pushText(text.slice(cursor));
+
+  // Unclosed tags: put the opening tag back as text and keep their content
+  while (stack.length > 1) {
+    const node = stack.pop();
+    const parent = stack[stack.length - 1];
+    const index = parent.children.indexOf(node);
+    parent.children.splice(index, 1, node.raw, ...node.children);
+  }
+
+  return root.children;
+};
+
+const renderFormatted = (text, robots, consumables, keyPrefix) => {
+  const renderNodes = (nodes, prefix) =>
+    nodes.flatMap((node, index) => {
+      if (typeof node === 'string') {
+        return renderInline(node, robots, consumables, `${prefix}${index}-`);
+      }
+      return [
+        <span key={`${prefix}${node.tag}-${index}`} style={FORMAT_STYLES[node.tag]}>
+          {renderNodes(node.children, `${prefix}${index}.`)}
+        </span>,
+      ];
+    });
+
+  return renderNodes(parseFormatting(text), keyPrefix);
+};
+
 export const renderOfferText = (text, robots, consumables) => {
   if (!text) return null;
 
@@ -95,11 +177,11 @@ export const renderOfferText = (text, robots, consumables) => {
   let match;
   while ((match = TITLE_LINE_REGEX.exec(text))) {
     if (match.index > cursor) {
-      nodes.push(...renderInline(text.slice(cursor, match.index), robots, consumables, `c${cursor}-`));
+      nodes.push(...renderFormatted(text.slice(cursor, match.index), robots, consumables, `c${cursor}-`));
     }
     nodes.push(
       <span key={`title-${match.index}`} className="d-block fw-bold fs-5 mb-1">
-        {renderInline(match[1], robots, consumables, `t${match.index}-`)}
+        {renderInline(stripFormatting(match[1]), robots, consumables, `t${match.index}-`)}
       </span>
     );
     cursor = match.index + match[0].length;
@@ -107,7 +189,7 @@ export const renderOfferText = (text, robots, consumables) => {
     if (text[cursor] === '\n') cursor += 1;
   }
   if (cursor < text.length) {
-    nodes.push(...renderInline(text.slice(cursor), robots, consumables, `c${cursor}-`));
+    nodes.push(...renderFormatted(text.slice(cursor), robots, consumables, `c${cursor}-`));
   }
   return nodes;
 };

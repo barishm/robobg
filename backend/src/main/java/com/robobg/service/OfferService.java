@@ -1,16 +1,18 @@
 package com.robobg.service;
 
 import com.robobg.dtos.OfferDTO.OfferDTO;
+import com.robobg.dtos.OfferDTO.OfferPageDTO;
 import com.robobg.entity.User;
 import com.robobg.exceptions.EntityNotFoundException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 
 public interface OfferService {
 
-    List<OfferDTO> getAllOffers();
+    OfferPageDTO getOffers(int page, int size);
+
+    OfferDTO getOfferById(Long id) throws EntityNotFoundException;
 
     OfferDTO createOffer(String text, String linkUrl, String linkTitle, MultipartFile linkImage, User author) throws IOException;
 
