@@ -66,6 +66,10 @@ const Header = ({ setDashboardsActiveComponent }) => {
     const isCollapsed = navbar.classList.contains('show');
     if (isCollapsed) {
       navbar.classList.remove('show');
+      // Keep the menu button in sync (shows the bars icon again)
+      const toggler = document.querySelector('[data-bs-target="#navbarSupportedContent"]');
+      toggler?.classList.add('collapsed');
+      toggler?.setAttribute('aria-expanded', 'false');
     }
   };
 
@@ -150,8 +154,10 @@ const Header = ({ setDashboardsActiveComponent }) => {
               </li>
             </ul>
           </div>
+          {/* White menu button: Bootstrap's default icon is dark grey and
+              hard to see on the dark navbar. */}
           <button
-            className="navbar-toggler ms-auto"
+            className="navbar-toggler header-menu-toggler collapsed ms-auto"
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#navbarSupportedContent"
@@ -159,7 +165,9 @@ const Header = ({ setDashboardsActiveComponent }) => {
             aria-expanded="false"
             aria-label="Toggle navigation"
           >
-            <span className="navbar-toggler-icon"></span>
+            <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
         <div className="collapse navbar-collapse" id="navbarSupportedContent">

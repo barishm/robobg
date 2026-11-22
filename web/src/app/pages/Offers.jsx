@@ -28,7 +28,7 @@ const Offers = () => {
   const headerExtra = (
     <div className="text-center">
       <button
-        className="btn btn-primary mt-2 d-lg-none"
+        className="btn btn-primary mt-2 mb-4 d-lg-none"
         type="button"
         data-bs-toggle="offcanvas"
         data-bs-target="#offerFilters"
@@ -37,7 +37,7 @@ const Offers = () => {
         <i className="fa-solid fa-filter fa-sm"></i>&nbsp; {t('filters')}
       </button>
       {categories.length > 0 && (
-        <div className="d-flex flex-wrap justify-content-center gap-2 mt-3 mb-4">
+        <div className="d-flex flex-wrap justify-content-center gap-2 mt-0 mt-lg-3 mb-4">
           {categories.map((category) => (
             <span
               key={category}

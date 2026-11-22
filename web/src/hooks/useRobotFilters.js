@@ -5,27 +5,12 @@ const useRobotFilters = (data, filterOptions, isLoading) => {
 
   useEffect(() => {
     if (!isLoading && Array.isArray(data)) {
-      const {
-        Model,
-        Brands,
-        StartYear,
-        EndYear,
-        MinDustbinCapacity,
-        MaxDustbinCapacity,
-        MinSuctionPower,
-        MaxSuctionPower,
-      } = filterOptions;
+      const { Model, Brands } = filterOptions;
 
       const filtered = data.filter((robot) => {
         return (
           (!Model || robot.model.toLowerCase().includes(Model.toLowerCase())) &&
-          (Brands.length === 0 || Brands.includes(robot.brand)) &&
-          (!StartYear || robot.year >= StartYear) &&
-          (!EndYear || robot.year <= EndYear) &&
-          (!MinDustbinCapacity || robot.dustbinCapacity >= MinDustbinCapacity) &&
-          (!MaxDustbinCapacity || robot.dustbinCapacity <= MaxDustbinCapacity) &&
-          (!MinSuctionPower || robot.suctionPower >= MinSuctionPower) &&
-          (!MaxSuctionPower || robot.suctionPower <= MaxSuctionPower)
+          (Brands.length === 0 || Brands.includes(robot.brand))
         );
       });
       // "One of bests" robots come first, ordered by their bests number

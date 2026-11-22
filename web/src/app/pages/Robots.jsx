@@ -18,12 +18,6 @@ import { useTranslation } from "react-i18next";
 const Robots = () => {
   const [Model, setModel] = useState('');
   const [Brands, setBrands] = useState([]);
-  const [StartYear, setStartYear] = useState(0);
-  const [EndYear, setEndYear] = useState(0);
-  const [MinDustbinCapacity, setMinDustbinCapacity] = useState(0);
-  const [MaxDustbinCapacity, setMaxDustbinCapacity] = useState(0);
-  const [MinSuctionPower, setMinSuctionPower] = useState(0);
-  const [MaxSuctionPower, setMaxSuctionPower] = useState(0);
   const { role } = useSelector((state) => state.auth);
 
   const lang = useSelector((state) => state.language.lang);
@@ -32,25 +26,7 @@ const Robots = () => {
 
   const { data = [], isLoading, isError } = useGetAllRobotsQuery();
 
-  const filterOptions = useMemo(() => ({
-    Model,
-    Brands,
-    StartYear,
-    EndYear,
-    MinDustbinCapacity,
-    MaxDustbinCapacity,
-    MinSuctionPower,
-    MaxSuctionPower,
-  }), [
-    Model,
-    Brands,
-    StartYear,
-    EndYear,
-    MinDustbinCapacity,
-    MaxDustbinCapacity,
-    MinSuctionPower,
-    MaxSuctionPower,
-  ]);
+  const filterOptions = useMemo(() => ({ Model, Brands }), [Model, Brands]);
 
   const availableBrands = useMemo(() => {
     const brandMap = new Map();
@@ -182,12 +158,6 @@ const Robots = () => {
             setPage={setPage}
             setModel={setModel}
             setBrands={setBrands}
-            setStartYear={setStartYear}
-            setEndYear={setEndYear}
-            setMinDustbinCapacity={setMinDustbinCapacity}
-            setMaxDustbinCapacity={setMaxDustbinCapacity}
-            setMinSuctionPower={setMinSuctionPower}
-            setMaxSuctionPower={setMaxSuctionPower}
             Brands={Brands}
             availableBrands={availableBrands}
           />

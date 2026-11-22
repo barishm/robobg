@@ -38,3 +38,24 @@
   height: 0;
   pointer-events: none;
 }
+
+/* Mobile navbar menu button (components/Header.jsx) */
+.navbar .header-menu-toggler {
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  width: 44px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar .header-menu-toggler:hover,
+.navbar .header-menu-toggler[aria-expanded="true"] {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.navbar .header-menu-toggler:focus {
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.35);
+}
