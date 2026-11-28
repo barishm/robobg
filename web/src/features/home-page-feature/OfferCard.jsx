@@ -42,7 +42,7 @@ const LinkPreview = ({ link }) => {
           src={link.image}
           alt=""
           className="w-100"
-          style={{ display: 'block', maxHeight: '360px', objectFit: 'cover' }}
+          style={{ display: 'block', height: 'auto' }}
         />
       )}
       {(domain || link.title) && (
